@@ -8,6 +8,12 @@ const groupSchema = new mongoose.Schema(
       trim: true,
     },
 
+    description: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
@@ -46,6 +52,7 @@ groupSchema.pre("save", function (next) {
   if (!this.members.includes(this.createdBy)) {
     this.members.push(this.createdBy);
   }
+
   next();
 });
 

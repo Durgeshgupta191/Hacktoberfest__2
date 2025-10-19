@@ -3,6 +3,7 @@ import { useAuthStore } from "../store/useAuthStore";
 import { useChatStore } from "../store/useChatStore";
 import EncryptionToggle from "./EncryptionToggle";
 import PinButton from "./PinButton";
+import GroupInfoPopup from  "../components/GroupInfoPopup.jsx";
 import { useEffect, useState } from "react";
 
 const ChatHeader = ({ isGroup = false, showSidebar, setShowSidebar }) => {
@@ -16,6 +17,7 @@ const ChatHeader = ({ isGroup = false, showSidebar, setShowSidebar }) => {
 
   const { onlineUsers, typingUsers } = useAuthStore();
   const [isTyping, setIsTyping] = useState(false);
+  const [showGroupInfo, setShowGroupInfo] = useState(false);
 
   useEffect(() => {
     setIsTyping(typingUsers[selectedUser?._id] || false);
@@ -25,6 +27,7 @@ const ChatHeader = ({ isGroup = false, showSidebar, setShowSidebar }) => {
   if (!chatTarget) return null;
 
   return (
+    <>
     <div className="p-2.5 border-b border-base-300">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -55,7 +58,10 @@ const ChatHeader = ({ isGroup = false, showSidebar, setShowSidebar }) => {
 
           {/* User info */}
           <div>
-            <h3 className="font-medium">
+            <h3
+              className="font-medium cursor-pointer hover:underline"
+              onClick={() => isGroup && setShowGroupInfo(true)}
+            >
               {isGroup
                 ? chatTarget.name
                 : chatTarget.fullName || chatTarget.name || ""}
@@ -93,9 +99,17 @@ const ChatHeader = ({ isGroup = false, showSidebar, setShowSidebar }) => {
           >
             <X />
           </button>
+
+          {showGroupInfo && (
+              <GroupInfoPopup
+                group={selectedGroup}
+                onClose={() => setShowGroupInfo(false)}
+              />
+            )}
         </div>
       </div>
     </div>
+    </>
   );
 };
 
