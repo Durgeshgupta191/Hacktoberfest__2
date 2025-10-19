@@ -199,7 +199,7 @@ export const removeAdmin = async (req, res) => {
       return res.status(401).json({ message: "Unauthorized operation" });
     }
 
-    if (group.admin.includes(userIds)) {
+    if (!group.admin.includes(userIds)) {
       return res.status(400).json({ message: "This user is not an admin" });
     }
 
