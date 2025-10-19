@@ -10,6 +10,7 @@ const GroupChatContainer = () => {
   const {
     users,
     isUsersLoading,
+    setSelectedGroup,
     groupMessages,
     getGroupMessages,
     isGroupMessagesLoading,
@@ -21,6 +22,8 @@ const GroupChatContainer = () => {
     leaveGroup,
     addGroupAdmin,
     removeGroupAdmin,
+    getGroups,
+    removeGroupLocally,
   } = useChatStore();
 
   const { authUser } = useAuthStore();
@@ -52,6 +55,11 @@ const GroupChatContainer = () => {
       const data = await addGroupMembers(selectedGroup._id, userId);
       setMemberIds(new Set(data.members.map((m) => m)));
       alert("Members added successfully!");
+      await getGroups();
+      const { groups } = useChatStore.getState(); // get latest groups after fetch
+      const updatedGroup =
+        groups.find((g) => g._id === selectedGroup?._id) || null;
+      setSelectedGroup(updatedGroup);
     } catch (error) {
       console.error("Error adding members:", error);
       alert("Failed to add members");
@@ -67,6 +75,11 @@ const GroupChatContainer = () => {
       const data = await removeGroupMembers(selectedGroup._id, userId);
       setMemberIds(new Set(data.members.map((m) => m)));
       alert("Members removed successfully!");
+      await getGroups();
+      const { groups } = useChatStore.getState(); // get latest groups after fetch
+      const updatedGroup =
+        groups.find((g) => g._id === selectedGroup?._id) || null;
+      setSelectedGroup(updatedGroup);
     } catch (error) {
       console.error("Error adding members:", error);
       alert("Failed to add members");
@@ -82,6 +95,11 @@ const GroupChatContainer = () => {
       const data = await addGroupAdmin(selectedGroup._id, userId);
       setAdminIds(new Set(data.admin.map((a) => a)));
       alert("Admin added successfully!");
+      await getGroups();
+      const { groups } = useChatStore.getState(); // get latest groups after fetch
+      const updatedGroup =
+        groups.find((g) => g._id === selectedGroup?._id) || null;
+      setSelectedGroup(updatedGroup);
     } catch (error) {
       console.error("Error adding admin:", error);
       alert("Failed to add admin");
@@ -97,6 +115,11 @@ const GroupChatContainer = () => {
       const data = await removeGroupAdmin(selectedGroup._id, userId);
       setAdminIds(new Set(data.admin.map((a) => a)));
       alert("Admin removed successfully!");
+      await getGroups();
+      const { groups } = useChatStore.getState(); // get latest groups after fetch
+      const updatedGroup =
+        groups.find((g) => g._id === selectedGroup?._id) || null;
+      setSelectedGroup(updatedGroup);
     } catch (error) {
       console.error("Error adding admin:", error);
       alert("Failed to add admin");
@@ -134,7 +157,11 @@ const GroupChatContainer = () => {
         </div>
       ) : (
         <button
-          onClick={() => leaveGroup(selectedGroup._id)}
+          onClick={async () => {
+            leaveGroup(selectedGroup._id);
+            removeGroupLocally(selectedGroup._id);
+            setSelectedGroup(null);
+          }}
           className="px-3 py-1.5 rounded-md btn btn-outline border text-red-400 bg-base-100 border-gray-300 hover:bg-base-300 text-sm font-medium"
         >
           Leave Group

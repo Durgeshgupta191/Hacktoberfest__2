@@ -52,7 +52,7 @@ export const useChatStore = create((set, get) => ({
       await get().getPinnedChats();
       await get().getArchivedChats();
     } catch (error) {
-      toast.error(getErrorMessage(error, 'Failed to fetch users'));
+      toast.error(getErrorMessage(error, "Failed to fetch users"));
     } finally {
       set({ isUsersLoading: false });
     }
@@ -165,7 +165,7 @@ export const useChatStore = create((set, get) => ({
 
       set({ messages: decryptedMessages });
     } catch (error) {
-      toast.error(getErrorMessage(error, 'Failed to fetch messages'));
+      toast.error(getErrorMessage(error, "Failed to fetch messages"));
     } finally {
       set({ isMessagesLoading: false });
     }
@@ -190,7 +190,7 @@ export const useChatStore = create((set, get) => ({
       );
       set({ messages: [...messages, res.data] });
     } catch (error) {
-      toast.error(getErrorMessage(error, 'Failed to send message'));
+      toast.error(getErrorMessage(error, "Failed to send message"));
     }
   },
 
@@ -230,7 +230,6 @@ export const useChatStore = create((set, get) => ({
           get().notifyNewMessage(newMessage, { isGroup: false });
         }
       }
-      
     });
 
     socket.on("messageUpdated", (updated) => {
@@ -330,7 +329,10 @@ export const useChatStore = create((set, get) => ({
 
   // Notify user about an incoming message (one-to-one or group)
   notifyNewMessage: async (message, { isGroup = false } = {}) => {
-    console.debug('[notifyNewMessage] called', { messageId: message._id, isGroup });
+    console.debug("[notifyNewMessage] called", {
+      messageId: message._id,
+      isGroup,
+    });
     try {
       const currentUser = useAuthStore.getState().authUser;
       if (!currentUser) return;
@@ -339,31 +341,31 @@ export const useChatStore = create((set, get) => ({
 
       // Resolve sender and title
       const sender = get().users.find((u) => u._id === message.senderId) || {};
-      const senderName = sender.name || sender.username || 'Someone';
+      const senderName = sender.name || sender.username || "Someone";
       const title = isGroup
-        ? get().groups.find((g) => g._id === message.groupId)?.name || 'Group'
+        ? get().groups.find((g) => g._id === message.groupId)?.name || "Group"
         : senderName;
 
       // Try to obtain a short snippet. If encrypted, attempt decryption and fall back to marker
-      let snippet = '';
+      let snippet = "";
       if (message.isEncrypted && message.encryptedText) {
         try {
           snippet = await useEncryptionStore
             .getState()
             .decryptReceivedMessage(message.encryptedText, message.senderId);
         } catch (e) {
-          snippet = '[Encrypted message]';
+          snippet = "[Encrypted message]";
         }
       } else {
-        snippet = message.text || '';
+        snippet = message.text || "";
       }
 
       // normalize snippet
-      snippet = String(snippet).replace(/\s+/g, ' ').trim().slice(0, 120);
+      snippet = String(snippet).replace(/\s+/g, " ").trim().slice(0, 120);
       const body = isGroup ? `${senderName}: ${snippet}` : snippet;
 
       // Show a concise info toast. The toast wrapper will dedupe identical messages.
-      console.debug('[notifyNewMessage] showing toast', { title, body });
+      console.debug("[notifyNewMessage] showing toast", { title, body });
       if (body) {
         toast.info(`${title} — ${body}`, { duration: 4000 });
       } else {
@@ -373,35 +375,43 @@ export const useChatStore = create((set, get) => ({
       // Also show a native desktop notification when permitted so user receives
       // notifications even when interacting with other pages in the app.
       try {
-        if (typeof window !== 'undefined' && 'Notification' in window) {
+        if (typeof window !== "undefined" && "Notification" in window) {
           const showNative = async () => {
-            if (Notification.permission === 'granted') {
-              const n = new Notification(title, { body: body || 'New message' });
+            if (Notification.permission === "granted") {
+              const n = new Notification(title, {
+                body: body || "New message",
+              });
               // Bring app to focus when user clicks notification
               n.onclick = () => {
                 try {
                   window.focus();
                 } catch (e) {}
               };
-            } else if (Notification.permission === 'default') {
+            } else if (Notification.permission === "default") {
               const p = await Notification.requestPermission();
-              if (p === 'granted') {
-                const n = new Notification(title, { body: body || 'New message' });
+              if (p === "granted") {
+                const n = new Notification(title, {
+                  body: body || "New message",
+                });
                 n.onclick = () => {
-                  try { window.focus(); } catch (e) {}
+                  try {
+                    window.focus();
+                  } catch (e) {}
                 };
               }
             }
           };
           // don't await to avoid blocking UI
-          showNative().catch((e) => console.warn('native notification failed', e));
+          showNative().catch((e) =>
+            console.warn("native notification failed", e)
+          );
         }
       } catch (e) {
-        console.warn('notifyNewMessage: native notification error', e);
+        console.warn("notifyNewMessage: native notification error", e);
       }
     } catch (err) {
       // never throw from notification helper
-      console.error('notifyNewMessage error', err);
+      console.error("notifyNewMessage error", err);
     }
   },
 
@@ -431,7 +441,8 @@ export const useChatStore = create((set, get) => ({
       const currentUser = useAuthStore.getState().authUser;
 
       // If this message belongs to another group, still save it and notify
-      const isForSelected = selectedGroup && newMessage.groupId === selectedGroup._id;
+      const isForSelected =
+        selectedGroup && newMessage.groupId === selectedGroup._id;
 
       if (newMessage.senderId === currentUser._id) return;
 
@@ -571,4 +582,11 @@ export const useChatStore = create((set, get) => ({
       toast.error(error.response?.data?.message || "Failed to remove admins");
     }
   },
+
+  removeGroupLocally: (groupId) =>
+    set((state) => ({
+      groups: state.groups.filter((g) => g._id !== groupId),
+      selectedGroup:
+        state.selectedGroup?._id === groupId ? null : state.selectedGroup,
+    })),
 }));
