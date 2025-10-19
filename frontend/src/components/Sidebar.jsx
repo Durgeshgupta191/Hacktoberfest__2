@@ -199,17 +199,17 @@ const Sidebar = () => {
           <ContactListSkeleton />
         ) : (
           <>
-        {/* Pinned Chats Section */}
-        {pinnedUsers.length > 0 && (
-          <div className="mb-4">
-            <div className="px-3 mb-2 flex items-center gap-2 text-xs font-medium text-base-content/70 uppercase tracking-wider">
-              <Pin className="size-3" />
-              <span className="hidden lg:inline">Pinned</span>
-            </div>
-            {pinnedUsers.map((user) => (
-              <div
-                key={`pinned-${user._id}`}
-                className={`
+            {/* Pinned Chats Section */}
+            {pinnedUsers.length > 0 && (
+              <div className="mb-4">
+                <div className="px-3 mb-2 flex items-center gap-2 text-xs font-medium text-base-content/70 uppercase tracking-wider">
+                  <Pin className="size-3" />
+                  <span className="hidden lg:inline">Pinned</span>
+                </div>
+                {pinnedUsers.map((user) => (
+                  <div
+                    key={`pinned-${user._id}`}
+                    className={`
                   w-full p-3 flex items-center gap-3 group relative
                   hover:bg-base-300 transition-colors
                   ${
@@ -218,11 +218,135 @@ const Sidebar = () => {
                       : ""
                   }
                 `}
+                  >
+                    <button
+                      onClick={() => {
+                        setSelectedUser(user);
+                        setSelectedGroup(null);
+                      }}
+                      className="flex items-center gap-3 flex-1 min-w-0"
+                    >
+                      <div className="relative mx-auto lg:mx-0">
+                        <img
+                          src={user.profilePic || "/avatar.png"}
+                          alt={user.name}
+                          className="size-12 object-cover rounded-full"
+                        />
+                        {onlineUsers.includes(user._id) && (
+                          <span
+                            className="absolute bottom-0 right-0 size-3 bg-green-500 
+                        rounded-full ring-2 ring-zinc-900"
+                          />
+                        )}
+                      </div>
+
+                      {/* User info - only visible on larger screens */}
+                      <div className="hidden lg:block text-left min-w-0">
+                        <div className="font-medium truncate">
+                          {user.fullName}
+                        </div>
+                        <div className="text-sm text-zinc-400">
+                          {onlineUsers.includes(user._id)
+                            ? "Online"
+                            : formatLastSeen(user.lastSeen)}
+                        </div>
+                      </div>
+                    </button>
+
+                    {/* Pin button - visible on hover */}
+                    <div className="hidden lg:block opacity-0 group-hover:opacity-100 transition-opacity">
+                      <PinButton userId={user._id} />
+                    </div>
+                    {/* Archive / Unarchive button - visible on hover */}
+                    <div className="hidden lg:block opacity-0 group-hover:opacity-100 transition-opacity mt-1">
+                      <ArchiveButton
+                        userId={user._id}
+                        isArchived={isChatArchived(user._id)}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            {/* Archived Chats Section */}
+            {archivedUsers.length > 0 && (
+              <div className="mb-4">
+                <button
+                  onClick={() => setShowArchived(!showArchived)}
+                  className="px-3 mb-2 flex items-center gap-2 text-xs font-medium text-base-content/70 uppercase tracking-wider w-full text-left"
+                >
+                  <Pin className="size-3" />
+                  <span className="hidden lg:inline">Archived Chats</span>
+                  <span className="ml-auto">{showArchived ? "▲" : "▼"}</span>
+                </button>
+
+                {showArchived &&
+                  archivedUsers.map((user) => (
+                    <div
+                      key={`archived-${user._id}`}
+                      className={`w-full p-3 flex items-center gap-3 group relative hover:bg-base-300 transition-colors
+                  ${
+                    selectedUser?._id === user._id
+                      ? "bg-base-300 ring-1 ring-base-300"
+                      : ""
+                  }`}
+                    >
+                      <button
+                        onClick={() => {
+                          setSelectedUser(user);
+                          setSelectedGroup(null);
+                        }}
+                        className="flex items-center gap-3 flex-1 min-w-0"
+                      >
+                        <div className="relative mx-auto lg:mx-0">
+                          <img
+                            src={user.profilePic || "/avatar.png"}
+                            alt={user.name}
+                            className="size-12 object-cover rounded-full"
+                          />
+                        </div>
+
+                        <div className="hidden lg:block text-left min-w-0">
+                          <div className="font-medium truncate">
+                            {user.fullName}
+                          </div>
+                          <div className="text-sm text-zinc-400">
+                            Archived {isChatPinned(user._id) && "• Pinned"}
+                          </div>
+                        </div>
+                      </button>
+
+                      <div className="hidden lg:block opacity-0 group-hover:opacity-100 transition-opacity mt-1">
+                        <ArchiveButton userId={user._id} isArchived={true} />
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            )}
+
+            {/* Regular Chats Section */}
+            {unpinnedUsers.length > 0 && pinnedUsers.length > 0 && (
+              <div className="px-3 mb-2 text-xs font-medium text-base-content/70 uppercase tracking-wider">
+                <span className="hidden lg:inline">All Chats</span>
+              </div>
+            )}
+
+            {unpinnedUsers.map((user) => (
+              <div
+                key={user._id}
+                className={`
+              w-full p-3 flex items-center gap-3 group relative
+              hover:bg-base-300 transition-colors
+              ${
+                selectedUser?._id === user._id
+                  ? "bg-base-300 ring-1 ring-base-300"
+                  : ""
+              }
+            `}
               >
                 <button
                   onClick={() => {
-                    setSelectedUser(user);
-                    setSelectedGroup({});
+                    setSelectedUser(user), setSelectedGroup(null);
                   }}
                   className="flex items-center gap-3 flex-1 min-w-0"
                 >
@@ -235,7 +359,7 @@ const Sidebar = () => {
                     {onlineUsers.includes(user._id) && (
                       <span
                         className="absolute bottom-0 right-0 size-3 bg-green-500 
-                        rounded-full ring-2 ring-zinc-900"
+                    rounded-full ring-2 ring-zinc-900"
                       />
                     )}
                   </div>
@@ -244,7 +368,9 @@ const Sidebar = () => {
                   <div className="hidden lg:block text-left min-w-0">
                     <div className="font-medium truncate">{user.fullName}</div>
                     <div className="text-sm text-zinc-400">
-                      {onlineUsers.includes(user._id) ? "Online" : formatLastSeen(user.lastSeen)}
+                      {onlineUsers.includes(user._id)
+                        ? "Online"
+                        : formatLastSeen(user.lastSeen)}
                     </div>
                   </div>
                 </button>
@@ -253,7 +379,6 @@ const Sidebar = () => {
                 <div className="hidden lg:block opacity-0 group-hover:opacity-100 transition-opacity">
                   <PinButton userId={user._id} />
                 </div>
-                {/* Archive / Unarchive button - visible on hover */}
                 <div className="hidden lg:block opacity-0 group-hover:opacity-100 transition-opacity mt-1">
                   <ArchiveButton
                     userId={user._id}
@@ -262,145 +387,28 @@ const Sidebar = () => {
                 </div>
               </div>
             ))}
-          </div>
-        )}
-        {/* Archived Chats Section */}
-        {archivedUsers.length > 0 && (
-          <div className="mb-4">
-            <button
-              onClick={() => setShowArchived(!showArchived)}
-              className="px-3 mb-2 flex items-center gap-2 text-xs font-medium text-base-content/70 uppercase tracking-wider w-full text-left"
-            >
-              <Pin className="size-3" />
-              <span className="hidden lg:inline">Archived Chats</span>
-              <span className="ml-auto">{showArchived ? "▲" : "▼"}</span>
-            </button>
 
-            {showArchived &&
-              archivedUsers.map((user) => (
-                <div
-                  key={`archived-${user._id}`}
-                  className={`w-full p-3 flex items-center gap-3 group relative hover:bg-base-300 transition-colors
-                  ${
-                    selectedUser?._id === user._id
-                      ? "bg-base-300 ring-1 ring-base-300"
-                      : ""
-                  }`}
-                >
-                  <button
+            {groups.length > 0 &&
+              groups.map((group) => {
+                const isActive = group?._id == selectedGroup?._id ?? false;
+                return (
+                  <GroupSidebarIcon
+                    key={group._id}
+                    group={group}
+                    isActive={isActive}
                     onClick={() => {
-                      setSelectedUser(user);
-                      setSelectedGroup({});
+                      setSelectedGroup(group);
+                      setSelectedUser(null);
                     }}
-                    className="flex items-center gap-3 flex-1 min-w-0"
-                  >
-                    <div className="relative mx-auto lg:mx-0">
-                      <img
-                        src={user.profilePic || "/avatar.png"}
-                        alt={user.name}
-                        className="size-12 object-cover rounded-full"
-                      />
-                    </div>
-
-                    <div className="hidden lg:block text-left min-w-0">
-                      <div className="font-medium truncate">
-                        {user.fullName}
-                      </div>
-                      <div className="text-sm text-zinc-400">
-                        Archived {isChatPinned(user._id) && "• Pinned"}
-                      </div>
-                    </div>
-                  </button>
-
-                  <div className="hidden lg:block opacity-0 group-hover:opacity-100 transition-opacity mt-1">
-                    <ArchiveButton userId={user._id} isArchived={true} />
-                  </div>
-                </div>
-              ))}
-          </div>
-        )}
-
-        {/* Regular Chats Section */}
-        {unpinnedUsers.length > 0 && pinnedUsers.length > 0 && (
-          <div className="px-3 mb-2 text-xs font-medium text-base-content/70 uppercase tracking-wider">
-            <span className="hidden lg:inline">All Chats</span>
-          </div>
-        )}
-
-        {unpinnedUsers.map((user) => (
-          <div
-            key={user._id}
-            className={`
-              w-full p-3 flex items-center gap-3 group relative
-              hover:bg-base-300 transition-colors
-              ${
-                selectedUser?._id === user._id
-                  ? "bg-base-300 ring-1 ring-base-300"
-                  : ""
-              }
-            `}
-          >
-            <button
-              onClick={() => {
-                setSelectedUser(user), setSelectedGroup({});
-              }}
-              className="flex items-center gap-3 flex-1 min-w-0"
-            >
-              <div className="relative mx-auto lg:mx-0">
-                <img
-                  src={user.profilePic || "/avatar.png"}
-                  alt={user.name}
-                  className="size-12 object-cover rounded-full"
-                />
-                {onlineUsers.includes(user._id) && (
-                  <span
-                    className="absolute bottom-0 right-0 size-3 bg-green-500 
-                    rounded-full ring-2 ring-zinc-900"
                   />
-                )}
+                );
+              })}
+
+            {sortedUsers.length === 0 && (
+              <div className="text-center text-zinc-500 py-4">
+                No online users
               </div>
-
-              {/* User info - only visible on larger screens */}
-              <div className="hidden lg:block text-left min-w-0">
-                <div className="font-medium truncate">{user.fullName}</div>
-                <div className="text-sm text-zinc-400">
-                  {onlineUsers.includes(user._id) ? "Online" : formatLastSeen(user.lastSeen)}
-                </div>
-              </div>
-            </button>
-
-            {/* Pin button - visible on hover */}
-            <div className="hidden lg:block opacity-0 group-hover:opacity-100 transition-opacity">
-              <PinButton userId={user._id} />
-            </div>
-            <div className="hidden lg:block opacity-0 group-hover:opacity-100 transition-opacity mt-1">
-              <ArchiveButton
-                userId={user._id}
-                isArchived={isChatArchived(user._id)}
-              />
-            </div>
-          </div>
-        ))}
-
-        {groups.length > 0 &&
-          groups.map((group) => {
-            const isActive = group?._id == selectedGroup?._id ?? false;
-            return (
-              <GroupSidebarIcon
-                key={group._id}
-                group={group}
-                isActive={isActive}
-                onClick={() => {
-                  setSelectedGroup(group);
-                  setSelectedUser(null);
-                }}
-              />
-            );
-          })}
-
-        {sortedUsers.length === 0 && (
-          <div className="text-center text-zinc-500 py-4">No online users</div>
-        )}
+            )}
           </>
         )}
       </div>
