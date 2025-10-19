@@ -31,12 +31,14 @@ const GroupChatContainer = ({ showSidebar, setShowSidebar }) => {
   const [showManageMembers,setShowManageMembers] = useState(false)
   const [activeTab,setActiveTab] = useState("add")
   const [memberIds,setMemberIds] = useState(new Set(selectedGroup.members.map(m => m._id)))
-  // const [adminIds,setAdminIds] = useState(new Set(selectedGroup.admin.map(a => a)))
+  const [adminIds,setAdminIds] = useState(new Set(selectedGroup.admin.map(a => a)))
 
   useEffect(() => {
     if (!selectedGroup?._id) return;
     getGroupMessages(selectedGroup._id);
     subscribeToGroupMessages(selectedGroup._id);
+    setAdminIds(new Set(selectedGroup.admin.map(a => a)))
+    setMemberIds(new Set(selectedGroup.members.map(m => m._id)))
     return () => {
       unsubscribeFromGroupMessages(selectedGroup._id);
     };
@@ -56,7 +58,7 @@ const GroupChatContainer = ({ showSidebar, setShowSidebar }) => {
       setMemberIds(new Set(data.members.map((m) => m)));
       alert("Members added successfully!");
       await getGroups();
-      const { groups } = useChatStore.getState(); // get latest groups after fetch
+      const { groups } = useChatStore.getState();
       const updatedGroup =
         groups.find((g) => g._id === selectedGroup?._id) || null;
       setSelectedGroup(updatedGroup);
@@ -76,7 +78,7 @@ const GroupChatContainer = ({ showSidebar, setShowSidebar }) => {
       setMemberIds(new Set(data.members.map((m) => m)));
       alert("Members removed successfully!");
       await getGroups();
-      const { groups } = useChatStore.getState(); // get latest groups after fetch
+      const { groups } = useChatStore.getState();
       const updatedGroup =
         groups.find((g) => g._id === selectedGroup?._id) || null;
       setSelectedGroup(updatedGroup);
@@ -96,7 +98,7 @@ const GroupChatContainer = ({ showSidebar, setShowSidebar }) => {
       setAdminIds(new Set(data.admin.map((a) => a)));
       alert("Admin added successfully!");
       await getGroups();
-      const { groups } = useChatStore.getState(); // get latest groups after fetch
+      const { groups } = useChatStore.getState();
       const updatedGroup =
         groups.find((g) => g._id === selectedGroup?._id) || null;
       setSelectedGroup(updatedGroup);
@@ -116,7 +118,7 @@ const GroupChatContainer = ({ showSidebar, setShowSidebar }) => {
       setAdminIds(new Set(data.admin.map((a) => a)));
       alert("Admin removed successfully!");
       await getGroups();
-      const { groups } = useChatStore.getState(); // get latest groups after fetch
+      const { groups } = useChatStore.getState();
       const updatedGroup =
         groups.find((g) => g._id === selectedGroup?._id) || null;
       setSelectedGroup(updatedGroup);
