@@ -237,7 +237,7 @@ const Sidebar = ({ setShowSidebar }) => {
                     <button
                       onClick={() => {
                         setSelectedUser(user);
-                        setSelectedGroup({});
+                        setSelectedGroup(null);
                       }}
                       className="flex items-center gap-3 flex-1 min-w-0"
                     >
@@ -312,7 +312,7 @@ const Sidebar = ({ setShowSidebar }) => {
                       <button
                         onClick={() => {
                           setSelectedUser(user);
-                          setSelectedGroup({});
+                          setSelectedGroup(null);
                         }}
                         className="flex items-center gap-3 flex-1 min-w-0"
                       >
@@ -364,7 +364,7 @@ const Sidebar = ({ setShowSidebar }) => {
               >
                 <button
                   onClick={() => {
-                    setSelectedUser(user), setSelectedGroup({});
+                    setSelectedUser(user), setSelectedGroup(null);
                   }}
                   className="flex items-center gap-3 flex-1 min-w-0"
                 >
