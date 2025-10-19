@@ -6,10 +6,11 @@ import MessageInput from "./MessageInput";
 import MessageSkeleton from "./skeletons/MessageSkeleton";
 import { formatMessageTime } from "../lib/utils";
 
-const GroupChatContainer = () => {
+const GroupChatContainer = ({ showSidebar, setShowSidebar }) => {
   const {
     users,
     isUsersLoading,
+    setSelectedGroup,
     groupMessages,
     getGroupMessages,
     isGroupMessagesLoading,
@@ -21,6 +22,8 @@ const GroupChatContainer = () => {
     leaveGroup,
     addGroupAdmin,
     removeGroupAdmin,
+    getGroups,
+    removeGroupLocally,
   } = useChatStore();
 
   const { authUser } = useAuthStore();
@@ -28,7 +31,7 @@ const GroupChatContainer = () => {
   const [showManageMembers,setShowManageMembers] = useState(false)
   const [activeTab,setActiveTab] = useState("add")
   const [memberIds,setMemberIds] = useState(new Set(selectedGroup.members.map(m => m._id)))
-  const [adminIds,setAdminIds] = useState(new Set(selectedGroup.admin.map(a => a)))
+  // const [adminIds,setAdminIds] = useState(new Set(selectedGroup.admin.map(a => a)))
 
   useEffect(() => {
     if (!selectedGroup?._id) return;
@@ -52,6 +55,11 @@ const GroupChatContainer = () => {
       const data = await addGroupMembers(selectedGroup._id, userId);
       setMemberIds(new Set(data.members.map((m) => m)));
       alert("Members added successfully!");
+      await getGroups();
+      const { groups } = useChatStore.getState(); // get latest groups after fetch
+      const updatedGroup =
+        groups.find((g) => g._id === selectedGroup?._id) || null;
+      setSelectedGroup(updatedGroup);
     } catch (error) {
       console.error("Error adding members:", error);
       alert("Failed to add members");
@@ -67,6 +75,11 @@ const GroupChatContainer = () => {
       const data = await removeGroupMembers(selectedGroup._id, userId);
       setMemberIds(new Set(data.members.map((m) => m)));
       alert("Members removed successfully!");
+      await getGroups();
+      const { groups } = useChatStore.getState(); // get latest groups after fetch
+      const updatedGroup =
+        groups.find((g) => g._id === selectedGroup?._id) || null;
+      setSelectedGroup(updatedGroup);
     } catch (error) {
       console.error("Error adding members:", error);
       alert("Failed to add members");
@@ -82,6 +95,11 @@ const GroupChatContainer = () => {
       const data = await addGroupAdmin(selectedGroup._id, userId);
       setAdminIds(new Set(data.admin.map((a) => a)));
       alert("Admin added successfully!");
+      await getGroups();
+      const { groups } = useChatStore.getState(); // get latest groups after fetch
+      const updatedGroup =
+        groups.find((g) => g._id === selectedGroup?._id) || null;
+      setSelectedGroup(updatedGroup);
     } catch (error) {
       console.error("Error adding admin:", error);
       alert("Failed to add admin");
@@ -97,6 +115,11 @@ const GroupChatContainer = () => {
       const data = await removeGroupAdmin(selectedGroup._id, userId);
       setAdminIds(new Set(data.admin.map((a) => a)));
       alert("Admin removed successfully!");
+      await getGroups();
+      const { groups } = useChatStore.getState(); // get latest groups after fetch
+      const updatedGroup =
+        groups.find((g) => g._id === selectedGroup?._id) || null;
+      setSelectedGroup(updatedGroup);
     } catch (error) {
       console.error("Error adding admin:", error);
       alert("Failed to add admin");
@@ -112,7 +135,8 @@ const GroupChatContainer = () => {
   if (isGroupMessagesLoading || isUsersLoading) {
     return (
       <div className="flex-1 flex flex-col overflow-auto">
-        <ChatHeader isGroup />
+        <ChatHeader isGroup  showSidebar={showSidebar}
+          setShowSidebar={setShowSidebar} />
         <MessageSkeleton />
         <MessageInput isGroup />
       </div>
@@ -121,7 +145,9 @@ const GroupChatContainer = () => {
 
   return (
     <div className="flex-1 flex flex-col overflow-auto">
-      <ChatHeader isGroup groupName={selectedGroup?.name} />
+      <ChatHeader isGroup groupName={selectedGroup?.name}  
+        showSidebar={showSidebar}
+        setShowSidebar={setShowSidebar}/>
 
       {isAdmin ? (
         <div className="flex items-center justify-end gap-2 mt-3">
@@ -134,7 +160,11 @@ const GroupChatContainer = () => {
         </div>
       ) : (
         <button
-          onClick={() => leaveGroup(selectedGroup._id)}
+          onClick={async () => {
+            leaveGroup(selectedGroup._id);
+            removeGroupLocally(selectedGroup._id);
+            setSelectedGroup(null);
+          }}
           className="px-3 py-1.5 rounded-md btn btn-outline border text-red-400 bg-base-100 border-gray-300 hover:bg-base-300 text-sm font-medium"
         >
           Leave Group
