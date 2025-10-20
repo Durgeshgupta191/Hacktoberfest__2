@@ -64,7 +64,22 @@ export const sendMessage = async(req,res) =>{
             // ===== GIF HANDLING END =====
         }
 
-        const newMessage = new Message({
+  // Check blocking: if receiver has blocked sender or sender has blocked receiver, reject
+  const receiver = await User.findById(receiverId).select('blockedUsers');
+  const sender = await User.findById(senderId).select('blockedUsers');
+  if (!receiver || !sender) return res.status(404).json({ error: 'User not found' });
+
+  // If receiver blocked sender, sender cannot send messages to receiver
+  if (receiver.blockedUsers && receiver.blockedUsers.map(String).includes(senderId.toString())) {
+      return res.status(403).json({ error: 'You are blocked by this user' });
+  }
+
+  // If sender has blocked receiver, prevent sending (optional UX: disallow)
+  if (sender.blockedUsers && sender.blockedUsers.map(String).includes(receiverId.toString())) {
+      return res.status(400).json({ error: 'You have blocked this user' });
+  }
+
+  const newMessage = new Message({
             senderId,
             receiverId,
             text: isEncrypted ? null : text, // Store plain text only if not encrypted

@@ -270,3 +270,53 @@ export const checkAuth = (req, res) => {
         res.status(500).json({ message: "Internal Server Error" });
     }
 };
+
+// BLOCK USER
+export const blockUser = async (req, res) => {
+    try {
+        const userId = req.user._id;
+        const { id: toBlockId } = req.params;
+        if (userId.toString() === toBlockId.toString()) {
+            return res.status(400).json({ message: "Cannot block yourself" });
+        }
+
+        const toBlock = await User.findById(toBlockId);
+        if (!toBlock) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        await User.findByIdAndUpdate(userId, { $addToSet: { blockedUsers: toBlockId } });
+
+        res.status(200).json({ message: "User blocked" });
+    } catch (error) {
+        console.log("Error in blockUser:", error.message);
+        res.status(500).json({ message: "Internal server error" });
+    }
+};
+
+// UNBLOCK USER
+export const unblockUser = async (req, res) => {
+    try {
+        const userId = req.user._id;
+        const { id: toUnblockId } = req.params;
+
+        await User.findByIdAndUpdate(userId, { $pull: { blockedUsers: toUnblockId } });
+
+        res.status(200).json({ message: "User unblocked" });
+    } catch (error) {
+        console.log("Error in unblockUser:", error.message);
+        res.status(500).json({ message: "Internal server error" });
+    }
+};
+
+// GET BLOCKED USERS
+export const getBlockedUsers = async (req, res) => {
+    try {
+        const userId = req.user._id;
+        const user = await User.findById(userId).populate('blockedUsers', '-password -privateKey -lastSeen');
+        res.status(200).json(user.blockedUsers || []);
+    } catch (error) {
+        console.log("Error in getBlockedUsers:", error.message);
+        res.status(500).json({ message: "Internal server error" });
+    }
+};
