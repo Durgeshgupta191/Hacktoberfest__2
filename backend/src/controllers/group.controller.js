@@ -199,7 +199,7 @@ export const removeAdmin = async (req, res) => {
       return res.status(401).json({ message: "Unauthorized operation" });
     }
 
-    if (group.admin.includes(userIds)) {
+    if (!group.admin.includes(userIds)) {
       return res.status(400).json({ message: "This user is not an admin" });
     }
 
@@ -218,5 +218,37 @@ export const removeAdmin = async (req, res) => {
   } catch (error) {
     console.error("Error adding admin:", error);
     res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const updateGroupDescription = async (req, res) => {
+  try {
+    const { description } = req.body;
+    const { groupId } = req.params;
+
+    const group = await Group.findById(groupId);
+    if (!group) {
+      return res.status(404).json({ message: "Group not found" });
+    }
+
+    const isAdmin = group.admin.some(
+      (id) => id.toString() === req.user._id.toString()
+    );
+
+    if (!isAdmin) {
+      return res.status(403).json({ message: "Only admins can edit description" });
+    }
+
+    group.description = description;
+    await group.save();
+
+    res.json({
+      success: true,
+      message: "Description updated successfully",
+      group,
+    });
+  } catch (err) {
+    console.error("Error updating description:", err);
+    res.status(500).json({ message: "Server error" });
   }
 };

@@ -1,5 +1,18 @@
 import mongoose from "mongoose"
 
+// Define the reaction schema as a subdocument
+const reactionSchema = new mongoose.Schema({
+  emoji: {
+    type: String,
+    required: true,
+  },
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+    required: true,
+  },
+}, { _id: false });
+
 const messageSchema = new mongoose.Schema(
   {
     senderId: {
@@ -34,6 +47,11 @@ const messageSchema = new mongoose.Schema(
     },
     image: {
       type: String,
+    },
+    // Add the reactions array to the message schema
+    reactions: {
+      type: [reactionSchema],
+      default: [],
     },
   },
   { timestamps: true }
