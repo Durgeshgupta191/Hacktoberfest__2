@@ -3,6 +3,7 @@ import toast from "../lib/toast";
 import { axiosInstance } from "../lib/axios";
 import { useAuthStore } from "./useAuthStore";
 import { useEncryptionStore } from "./useEncryptionStore";
+import { socket } from "../lib/socket";
 
 const getErrorMessage = (error, fallback = 'An error occurred') => {
   if (!error) return fallback;
@@ -294,6 +295,75 @@ export const useChatStore = create((set, get) => ({
     socket.off("messageDeleted");
     socket.off("messageReactionAdded");
     socket.off("messageReactionRemoved");
+  },
+  
+  // Send voice message
+  sendVoiceMessage: async ({ audioBlob, duration, recipientId, groupId }) => {
+    try {
+      const formData = new FormData();
+      
+      // Add audio file
+      formData.append('audio', audioBlob, 'voice-message.webm');
+      
+      // Add other data
+      formData.append('duration', duration.toString());
+      
+      let endpoint = '';
+      
+      // Determine the correct endpoint based on whether it's a direct or group message
+      if (groupId) {
+        endpoint = `/voice-messages/group/${groupId}`;
+      } else if (recipientId) {
+        endpoint = `/voice-messages/${recipientId}`;
+      } else {
+        throw new Error('Either recipientId or groupId must be provided');
+      }
+      
+      // Upload voice message
+      const res = await axiosInstance.post(endpoint, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      
+      const newMessage = res.data;
+      
+      console.log('Voice message successfully sent:', newMessage);
+      
+      // Update messages in state
+      if (groupId) {
+        console.log('Adding voice message to group messages:', {
+          groupId,
+          currentMessages: get().groupMessages.length,
+          newMessage
+        });
+        
+        set(state => ({
+          ...state,
+          groupMessages: [...state.groupMessages, newMessage],
+        }));
+        
+        console.log('Updated group messages:', get().groupMessages.length);
+      } else {
+        console.log('Adding voice message to direct messages:', {
+          recipientId,
+          currentMessages: get().messages.length,
+          newMessage
+        });
+        
+        set(state => ({
+          ...state,
+          messages: [...state.messages, newMessage],
+        }));
+        
+        console.log('Updated messages:', get().messages.length);
+      }
+      
+      return newMessage;
+    } catch (error) {
+      console.error('Error sending voice message:', error);
+      throw new Error(getErrorMessage(error, 'Failed to send voice message'));
+    }
   },
 
   setSelectedUser: (selectedUser) => set({ selectedUser }),
@@ -656,4 +726,34 @@ export const useChatStore = create((set, get) => ({
       selectedGroup:
         state.selectedGroup?._id === groupId ? null : state.selectedGroup,
     })),
+    
+  sendVoiceMessage: async ({ audioBlob, duration, recipientId, groupId }) => {
+    try {
+      // Create a FormData object to send the audio file
+      const formData = new FormData();
+      formData.append('audio', audioBlob, 'voice-message.webm');
+      formData.append('duration', duration.toString());
+      
+      let response;
+      
+      // Determine if this is a direct message or group message
+      if (groupId) {
+        // For group messages
+        response = await axiosInstance.post(`/voice-messages/group/${groupId}`, formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+      } else {
+        // For direct messages
+        response = await axiosInstance.post(`/voice-messages/${recipientId}`, formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+      }
+      
+      return response.data;
+    } catch (error) {
+      console.error('Error sending voice message:', error);
+      toast.error(getErrorMessage(error, 'Failed to send voice message'));
+      throw error;
+    }
+  },
 }));

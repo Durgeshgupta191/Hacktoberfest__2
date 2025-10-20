@@ -48,6 +48,18 @@ const messageSchema = new mongoose.Schema(
     image: {
       type: String,
     },
+    // Voice message properties
+    voiceMessage: {
+      type: String, // URL to the voice message file
+    },
+    voiceDuration: {
+      type: Number, // Duration in seconds
+      default: 0,
+    },
+    voiceWaveform: {
+      type: [Number], // Array of amplitude values for waveform visualization
+      default: [],
+    },
     // Add the reactions array to the message schema
     reactions: {
       type: [reactionSchema],

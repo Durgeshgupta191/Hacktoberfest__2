@@ -2,8 +2,9 @@ import { useRef, useState, useEffect } from "react";
 
 import { useChatStore } from "../store/useChatStore";
 import { useAuthStore } from "../store/useAuthStore";
-import { Image, Send, X } from "lucide-react";
+import { Image, Send, X, Mic } from "lucide-react";
 import toast from "../lib/toast";
+import { VoiceRecorder } from "./VoiceMessage";
 
 const MessageInput = ({ isGroup = false }) => {
   const [text, setText] = useState("");
@@ -13,6 +14,7 @@ const MessageInput = ({ isGroup = false }) => {
     useChatStore();
   const { socket } = useAuthStore();
   const typingTimeoutRef = useRef(null);
+  const [showVoiceRecorder, setShowVoiceRecorder] = useState(false);
 
   const [showGifPicker, setShowGifPicker] = useState(false);
   const [gifs, setGifs] = useState([]);
@@ -190,6 +192,12 @@ const MessageInput = ({ isGroup = false }) => {
         </div>
       )}
 
+      {showVoiceRecorder && (
+        <div className="mb-3 border border-zinc-700 rounded-lg bg-base-200 p-3">
+          <VoiceRecorder onClose={() => setShowVoiceRecorder(false)} />
+        </div>
+      )}
+      
       {showGifPicker && (
         <div className="mb-3 border border-zinc-700 rounded-lg bg-base-200 p-3">
           <div className="flex items-center justify-between mb-2">
@@ -268,7 +276,20 @@ const MessageInput = ({ isGroup = false }) => {
             onChange={handleImageChange}
           />
 
-          {/* Changed from "hidden sm:flex" to just "flex" to show on all screen sizes */}
+          {/* Voice recording button */}
+          <button
+            type="button"
+            className={`flex btn btn-circle btn-sm sm:btn-md
+                     ${showVoiceRecorder ? "text-emerald-500" : "text-zinc-400"}`}
+            onClick={() => {
+              setShowVoiceRecorder(!showVoiceRecorder);
+              if (showGifPicker) setShowGifPicker(false);
+            }}
+          >
+            <Mic size={20} />
+          </button>
+
+          {/* Image upload button */}
           <button
             type="button"
             className={`flex btn btn-circle btn-sm sm:btn-md
@@ -278,12 +299,15 @@ const MessageInput = ({ isGroup = false }) => {
             <Image size={20} />
           </button>
 
-          {/* Changed from "hidden sm:flex" to just "flex" to show on all screen sizes */}
+          {/* GIF button */}
           <button
             type="button"
             className={`flex btn btn-circle btn-sm sm:btn-md
                      ${showGifPicker ? "text-emerald-500" : "text-zinc-400"}`}
-            onClick={() => setShowGifPicker(!showGifPicker)}
+            onClick={() => {
+              setShowGifPicker(!showGifPicker);
+              if (showVoiceRecorder) setShowVoiceRecorder(false);
+            }}
           >
             <span className="font-bold text-xs sm:text-sm">GIF</span>
           </button>

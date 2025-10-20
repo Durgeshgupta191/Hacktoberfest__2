@@ -8,6 +8,10 @@ import cors from "cors";
 import { app, server } from "./lib/socket.js";
 import groupRoutes from "./routes/group.route.js"
 import groupMessageRoutes from "./routes/groupMessage.js"
+import voiceRoutes from "./routes/voice.route.js"
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
 
 dotenv.config();
 
@@ -43,10 +47,27 @@ app.use(
   })
 );
 
+// Create required directories if they don't exist
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const tempDir = path.join(__dirname, "../temp");
+const publicDir = path.join(__dirname, "../public");
+const voiceMessagesDir = path.join(publicDir, "voice-messages");
+
+// Create directories
+[tempDir, publicDir, voiceMessagesDir].forEach(dir => {
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+});
+
+// Serve static files from the public directory
+app.use(express.static(publicDir));
+
 app.use("/api/auth", authRoutes);
 app.use("/api/messages",messageRoutes);
 app.use("/api/groups",groupRoutes);
 app.use("/api/group-messages", groupMessageRoutes);
+app.use("/api/voice-messages", voiceRoutes);
 
 app.get("/", (req, res) => {
   res.send({
