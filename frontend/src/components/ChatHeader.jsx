@@ -16,6 +16,9 @@ const ChatHeader = ({ isGroup = false, showSidebar, setShowSidebar }) => {
   } = useChatStore();
 
   const { onlineUsers, typingUsers } = useAuthStore();
+  const { blockedUsers } = useAuthStore();
+  const blockUser = useAuthStore((s) => s.blockUser);
+  const unblockUser = useAuthStore((s) => s.unblockUser);
   const [isTyping, setIsTyping] = useState(false);
   const [showGroupInfo, setShowGroupInfo] = useState(false);
 
@@ -87,8 +90,23 @@ const ChatHeader = ({ isGroup = false, showSidebar, setShowSidebar }) => {
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2">
           {!isGroup && <PinButton userId={chatTarget._id} />}
+          {!isGroup && (
+            (() => {
+              const blocked = blockedUsers.map(u => u._id ? u._id : u);
+              const isBlocked = blocked.includes(chatTarget._id);
+              return isBlocked ? (
+                <button className="btn btn-ghost btn-sm" onClick={() => unblockUser(chatTarget._id)}>
+                  Unblock
+                </button>
+              ) : (
+                <button className="btn btn-ghost btn-sm" onClick={() => blockUser(chatTarget._id)}>
+                  Block
+                </button>
+              )
+            })()
+          )}
           <EncryptionToggle />
 
           {/* Close */}

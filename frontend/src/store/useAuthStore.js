@@ -14,6 +14,7 @@ export const useAuthStore = create((set, get) => ({
   onlineUsers: [],
   socket: null,
   typingUsers: {},
+  blockedUsers: [],
 
   // OTP-related state
   pendingEmail: null,
@@ -41,11 +42,39 @@ export const useAuthStore = create((set, get) => ({
       const res = await axiosInstance.get("/auth/check");
       set({ authUser: res.data });
       get().connectSocket();
+      // fetch blocked users after auth
+      try {
+        const blockedRes = await axiosInstance.get('/auth/blocked');
+        set({ blockedUsers: blockedRes.data });
+      } catch (e) {
+        // ignore
+      }
     } catch (error) {
       set({ authUser: null });
       console.log("Error in checkAuth: ", error);
     } finally {
       set({ isCheckingAuth: false });
+    }
+  },
+
+  // Block/unblock APIs
+  blockUser: async (userId) => {
+    try {
+      await axiosInstance.post(`/auth/block/${userId}`);
+      // refresh blocked list
+      const res = await axiosInstance.get('/auth/blocked');
+      set({ blockedUsers: res.data });
+    } catch (err) {
+      console.warn('Failed to block user', err);
+    }
+  },
+  unblockUser: async (userId) => {
+    try {
+      await axiosInstance.post(`/auth/unblock/${userId}`);
+      const res = await axiosInstance.get('/auth/blocked');
+      set({ blockedUsers: res.data });
+    } catch (err) {
+      console.warn('Failed to unblock user', err);
     }
   },
 
@@ -142,6 +171,7 @@ export const useAuthStore = create((set, get) => ({
     try {
       await axiosInstance.post("/auth/logout");
       set({ authUser: null });
+  set({ blockedUsers: [] });
       toast.success("Logged out successfully");
       get().disconnectSocket();
 
@@ -198,12 +228,18 @@ export const useAuthStore = create((set, get) => ({
     });
 
     socket.on("userTyping", ({ userId }) => {
+      // ignore typing from users who are blocked by me or who blocked me
+      const blocked = get().blockedUsers.map(u => u._id ? u._id : u);
+      const currentUser = get().authUser;
+      if (blocked.includes(userId)) return;
       set((state) => ({
         typingUsers: { ...state.typingUsers, [userId]: true },
       }));
     });
 
     socket.on("userStopTyping", ({ userId }) => {
+      const blocked = get().blockedUsers.map(u => u._id ? u._id : u);
+      if (blocked.includes(userId)) return;
       set((state) => {
         const newTypingUsers = { ...state.typingUsers };
         delete newTypingUsers[userId];
@@ -217,7 +253,10 @@ export const useAuthStore = create((set, get) => ({
         console.debug("[socket] newMessage received", message);
         const mod = await import("./useChatStore");
         const chatStore = mod.useChatStore;
-        const currentUser = get().authUser;
+  const currentUser = get().authUser;
+  const blocked = get().blockedUsers.map(u => u._id ? u._id : u);
+  // ignore incoming messages from blocked users
+  if (blocked.includes(message.senderId)) return;
         if (!chatStore || !currentUser) return;
 
         const selectedUser = chatStore.getState().selectedUser;
@@ -239,7 +278,9 @@ export const useAuthStore = create((set, get) => ({
         console.debug("[socket] newGroupMessage received", message);
         const mod = await import("./useChatStore");
         const chatStore = mod.useChatStore;
-        const currentUser = get().authUser;
+  const currentUser = get().authUser;
+  const blocked = get().blockedUsers.map(u => u._id ? u._id : u);
+  if (blocked.includes(message.senderId)) return;
         if (!chatStore || !currentUser) return;
 
         const selectedGroup = chatStore.getState().selectedGroup;

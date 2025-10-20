@@ -51,21 +51,44 @@ io.on("connection", (socket) => {
   // Handle typing events
   socket.on("startTyping", ({ receiverId }) => {
     if (userId && receiverId) {
-      typingUsers[userId] = receiverId;
-      const receiverSocketId = getReceiverSocketId(receiverId);
-      if (receiverSocketId) {
-        io.to(receiverSocketId).emit("userTyping", { userId });
-      }
+      (async () => {
+        typingUsers[userId] = receiverId;
+        // Don't notify receiver if they blocked the typer or typer blocked receiver
+        try {
+          const receiver = await User.findById(receiverId).select('blockedUsers');
+          const typer = await User.findById(userId).select('blockedUsers');
+          if (!receiver || !typer) return;
+          if (receiver.blockedUsers && receiver.blockedUsers.map(String).includes(userId)) return;
+          if (typer.blockedUsers && typer.blockedUsers.map(String).includes(receiverId)) return;
+          const receiverSocketId = getReceiverSocketId(receiverId);
+          if (receiverSocketId) {
+            io.to(receiverSocketId).emit("userTyping", { userId });
+          }
+        } catch (err) {
+          console.warn('Error handling startTyping block checks', err.message);
+        }
+      })();
     }
   });
 
   socket.on("stopTyping", ({ receiverId }) => {
     if (userId && typingUsers[userId] === receiverId) {
-      delete typingUsers[userId];
-      const receiverSocketId = getReceiverSocketId(receiverId);
-      if (receiverSocketId) {
-        io.to(receiverSocketId).emit("userStopTyping", { userId });
-      }
+      (async () => {
+        delete typingUsers[userId];
+        try {
+          const receiver = await User.findById(receiverId).select('blockedUsers');
+          const typer = await User.findById(userId).select('blockedUsers');
+          if (!receiver || !typer) return;
+          if (receiver.blockedUsers && receiver.blockedUsers.map(String).includes(userId)) return;
+          if (typer.blockedUsers && typer.blockedUsers.map(String).includes(receiverId)) return;
+          const receiverSocketId = getReceiverSocketId(receiverId);
+          if (receiverSocketId) {
+            io.to(receiverSocketId).emit("userStopTyping", { userId });
+          }
+        } catch (err) {
+          console.warn('Error handling stopTyping block checks', err.message);
+        }
+      })();
     }
   });
 
