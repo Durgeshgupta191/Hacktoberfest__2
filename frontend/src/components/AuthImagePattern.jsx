@@ -110,8 +110,9 @@ const AuthImagePattern = ({ title, subtitle }) => {
           <button
             key={i}
             onClick={() => handleClick(i)}
-            className={`aspect-square rounded-2xl bg-gray-800 hover:bg-gray-700 flex items-center justify-center text-5xl font-bold text-white transition-all duration-200 border border-gray-700 ${i % 2 === 0 ? "animate-pulse" : ""
-              }`}
+            className={`aspect-square rounded-2xl bg-gray-800 hover:bg-gray-700 flex items-center justify-center text-5xl font-bold text-white transition-all duration-200 border border-gray-700 ${
+              i % 2 === 0 ? "animate-pulse" : ""
+            }`}
           >
             {cell}
           </button>

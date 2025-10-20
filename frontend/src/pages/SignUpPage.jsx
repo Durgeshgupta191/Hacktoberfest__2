@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useAuthStore } from "../store/useAuthStore";
 import AuthImagePattern from "../components/AuthImagePattern";
 import { Link, useNavigate } from "react-router-dom";
@@ -71,7 +71,12 @@ const SignupPage = () => {
       await signup(formData);
       navigate("/verify-otp");
     } catch (err) {
-      toast.error(err?.message || "Signup failed. Please try again.");
+      // Prefer server-provided message when available
+      const message =
+        err?.response?.data?.message ||
+        err?.message ||
+        "Sign up failed. Please try again.";
+      toast.error(message);
     }
   };
 
@@ -227,11 +232,13 @@ const SignupPage = () => {
                     <input
                       id="confirmPassword"
                       type={showPassword ? "text" : "password"}
-                      className={`peer w-full bg-[#2d3748] text-white rounded-xl border ${passwordError ? "border-red-500" : "border-gray-700"
-                        } focus:border-[#605dff] focus:ring-2 ${passwordError
+                      className={`peer w-full bg-[#2d3748] text-white rounded-xl border ${
+                        passwordError ? "border-red-500" : "border-gray-700"
+                      } focus:border-[#605dff] focus:ring-2 ${
+                        passwordError
                           ? "focus:ring-red-500/40"
                           : "focus:ring-[#605dff]/40"
-                        } transition-all duration-200 pl-12 pr-12 py-3.5 outline-none`}
+                      } transition-all duration-200 pl-12 pr-12 py-3.5 outline-none`}
                       placeholder=" "
                       value={formData.confirmPassword}
                       onChange={(e) => {
@@ -303,7 +310,7 @@ const SignupPage = () => {
               </div>
 
               {/* Right Side - Image */}
-              <div className="hidden lg:flex flex-col justify-center border-l border-gray-700 pl-12 scale-95 pr-2">
+              <div className="hidden lg:flex flex-col justify-center border-l border-gray-700 pl-12 pr-2">
                 <AuthImagePattern
                   title="Join our community"
                   subtitle="Connect with friends, share moments, and stay in touch with your loved ones."

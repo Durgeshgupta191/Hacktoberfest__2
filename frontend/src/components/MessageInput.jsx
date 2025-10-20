@@ -1,134 +1,172 @@
-import { useRef, useState ,useEffect } from "react";
-import { useChatStore } from "../store/useChatStore";
-import { Image, Send, X } from "lucide-react";
-import toast from "react-hot-toast";
+import { useRef, useState, useEffect } from "react";
 
-const MessageInput = () => {
+import { useChatStore } from "../store/useChatStore";
+import { useAuthStore } from "../store/useAuthStore";
+import { Image, Send, X } from "lucide-react";
+import toast from "../lib/toast";
+
+const MessageInput = ({ isGroup = false }) => {
   const [text, setText] = useState("");
   const [imagePreview, setImagePreview] = useState(null);
   const fileInputRef = useRef(null);
-  const { sendMessage } = useChatStore();
+  const { sendMessage, sendGroupMessage, selectedGroup, selectedUser } =
+    useChatStore();
+  const { socket } = useAuthStore();
+  const typingTimeoutRef = useRef(null);
 
-  // ===== GIF FUNCTIONALITY START =====
-const [showGifPicker, setShowGifPicker] = useState(false);
-const [gifs, setGifs] = useState([]);
-const [gifSearchQuery, setGifSearchQuery] = useState("");
-const [gifOffset, setGifOffset] = useState(0);
-const [isLoadingGifs, setIsLoadingGifs] = useState(false);
-const [selectedGifUrl, setSelectedGifUrl] = useState(null);
-const gifContainerRef = useRef(null);
-const GIPHY_API_KEY = import.meta.env.VITE_GIPHY_API;
-const GIF_LIMIT = 6;
-  // ===== GIF FUNCTIONALITY END =====
+  const [showGifPicker, setShowGifPicker] = useState(false);
+  const [gifs, setGifs] = useState([]);
+  const [gifSearchQuery, setGifSearchQuery] = useState("");
+  const [gifOffset, setGifOffset] = useState(0);
+  const [isLoadingGifs, setIsLoadingGifs] = useState(false);
+  const [selectedGifUrl, setSelectedGifUrl] = useState(null);
+  const gifContainerRef = useRef(null);
+  const GIPHY_API_KEY = import.meta.env.VITE_GIPHY_API;
+  const GIF_LIMIT = 6;
 
-  // ===== GIF FUNCTIONS START =====
-// Fetch GIFs (trending or search)
-const fetchGifs = async (offset = 0, isNewSearch = false) => {
-  if (isLoadingGifs) return;
-  
-  setIsLoadingGifs(true);
-  try {
-    const endpoint = gifSearchQuery.trim()
-      ? `https://api.giphy.com/v1/gifs/search?api_key=${GIPHY_API_KEY}&q=${gifSearchQuery}&limit=${GIF_LIMIT}&offset=${offset}`
-      : `https://api.giphy.com/v1/gifs/trending?api_key=${GIPHY_API_KEY}&limit=${GIF_LIMIT}&offset=${offset}`;
+  const fetchGifs = async (offset = 0, isNewSearch = false) => {
+    if (isLoadingGifs) return;
 
-    const response = await fetch(endpoint);
-    const data = await response.json();
+    setIsLoadingGifs(true);
+    try {
+      const endpoint = gifSearchQuery.trim()
+        ? `https://api.giphy.com/v1/gifs/search?api_key=${GIPHY_API_KEY}&q=${gifSearchQuery}&limit=${GIF_LIMIT}&offset=${offset}`
+        : `https://api.giphy.com/v1/gifs/trending?api_key=${GIPHY_API_KEY}&limit=${GIF_LIMIT}&offset=${offset}`;
 
-    if (data.data) {
-      if (isNewSearch) {
-        setGifs(data.data);
-      } else {
-        setGifs(prev => [...prev, ...data.data]);
+      const response = await fetch(endpoint);
+      const data = await response.json();
+
+      if (data.data) {
+        if (isNewSearch) {
+          setGifs(data.data);
+        } else {
+          setGifs((prev) => [...prev, ...data.data]);
+        }
+        setGifOffset(offset);
       }
-      setGifOffset(offset);
+    } catch (error) {
+      console.error("Failed to fetch GIFs:", error);
+      toast.error("Failed to load GIFs");
+    } finally {
+      setIsLoadingGifs(false);
     }
-  } catch (error) {
-    console.error("Failed to fetch GIFs:", error);
-    toast.error("Failed to load GIFs");
-  } finally {
-    setIsLoadingGifs(false);
-  }
-};
-
-// Initial fetch when GIF picker opens
-useEffect(() => {
-  if (showGifPicker && gifs.length === 0) {
-    fetchGifs(0, true);
-  }
-}, [showGifPicker]);
-
-// Search GIFs when query changes
-useEffect(() => {
-  if (showGifPicker) {
-    const timer = setTimeout(() => {
-      fetchGifs(0, true);
-    }, 500);
-    return () => clearTimeout(timer);
-  }
-}, [gifSearchQuery]);
-
-// Handle scroll for infinite loading
-const handleGifScroll = (e) => {
-  const { scrollTop, scrollHeight, clientHeight } = e.target;
-  if (scrollHeight - scrollTop <= clientHeight * 1.5 && !isLoadingGifs && gifOffset < 94) {
-    fetchGifs(gifOffset + GIF_LIMIT, false);
-  }
-};
-
-// Select GIF
-const handleSelectGif = (gif) => {
-  const gifUrl = gif.images.original.url;
-  setSelectedGifUrl(gifUrl);
-  setImagePreview(gifUrl);
-  setShowGifPicker(false);
-  setGifs([]);
-  setGifSearchQuery("");
-  setGifOffset(0);
-};
-// ===== GIF FUNCTIONS END =====
-
-const handleImageChange = (e) => {
-  const file = e.target.files[0];
-  if (!file.type.startsWith("image/")) {
-    toast.error("Please select an image file");
-    return;
-  }
-
-  const reader = new FileReader();
-  reader.onloadend = () => {
-    setImagePreview(reader.result);
-    setSelectedGifUrl(null); // ADDED: Clear GIF if image is selected
   };
-  reader.readAsDataURL(file);
-};
 
-const removeImage = () => {
-  setImagePreview(null);
-  setSelectedGifUrl(null); // ADDED: Also clear GIF URL
-  if (fileInputRef.current) fileInputRef.current.value = "";
-};
+  useEffect(() => {
+    if (showGifPicker && gifs.length === 0) {
+      fetchGifs(0, true);
+    }
+  }, [showGifPicker]);
 
-const handleSendMessage = async (e) => {
-  e.preventDefault();
-  if (!text.trim() && !imagePreview) return;
+  useEffect(() => {
+    if (showGifPicker) {
+      const timer = setTimeout(() => {
+        fetchGifs(0, true);
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [gifSearchQuery]);
 
-  try {
-    await sendMessage({
-      text: text.trim(),
-      image: imagePreview, // Contains either image data URL or GIF URL
-   
-    });
+  const handleGifScroll = (e) => {
+    const { scrollTop, scrollHeight, clientHeight } = e.target;
+    if (
+      scrollHeight - scrollTop <= clientHeight * 1.5 &&
+      !isLoadingGifs &&
+      gifOffset < 94
+    ) {
+      fetchGifs(gifOffset + GIF_LIMIT, false);
+    }
+  };
 
-    // Clear form
-    setText("");
+  const handleSelectGif = (gif) => {
+    const gifUrl = gif.images.original.url;
+    setSelectedGifUrl(gifUrl);
+    setImagePreview(gifUrl);
+    setShowGifPicker(false);
+    setGifs([]);
+    setGifSearchQuery("");
+    setGifOffset(0);
+  };
+
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select an image file");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setImagePreview(reader.result);
+      setSelectedGifUrl(null);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const removeImage = () => {
     setImagePreview(null);
-    setSelectedGifUrl(null); // ADDED: Clear GIF URL
+    setSelectedGifUrl(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
-  } catch (error) {
-    console.error("Failed to send message:", error);
-  }
-};
+  };
+
+  const handleSendMessage = async (e) => {
+    e.preventDefault();
+    if (!text.trim() && !imagePreview) return;
+
+    try {
+      const messageData = {
+        text: text.trim(),
+        image: imagePreview,
+      };
+
+      if (isGroup) {
+        if (!selectedGroup?._id) {
+          toast.error("No group selected!");
+          return;
+        }
+        await sendGroupMessage(selectedGroup._id, messageData);
+      } else {
+        if (!selectedUser?._id) {
+          toast.error("No user selected!");
+          return;
+        }
+        await sendMessage(messageData);
+      }
+
+      setText("");
+      setImagePreview(null);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    } catch (error) {
+      console.error("Failed to send message:", error);
+      toast.error("Failed to send message");
+    }
+  };
+
+  useEffect(() => {
+    if (!selectedUser || !socket) return;
+
+    const handleTyping = () => {
+      if (text.trim()) {
+        socket.emit("startTyping", { receiverId: selectedUser._id });
+        if (typingTimeoutRef.current) {
+          clearTimeout(typingTimeoutRef.current);
+        }
+        typingTimeoutRef.current = setTimeout(() => {
+          socket.emit("stopTyping", { receiverId: selectedUser._id });
+        }, 1000);
+      } else {
+        socket.emit("stopTyping", { receiverId: selectedUser._id });
+      }
+    };
+
+    handleTyping();
+
+    return () => {
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+    };
+  }, [text, selectedUser, socket]);
 
   return (
     <div className="p-4 w-full">
@@ -151,68 +189,67 @@ const handleSendMessage = async (e) => {
           </div>
         </div>
       )}
-      {/* ===== GIF PICKER MODAL START ===== */}
-{showGifPicker && (
-  <div className="mb-3 border border-zinc-700 rounded-lg bg-base-200 p-3">
-    <div className="flex items-center justify-between mb-2">
-      <h3 className="text-sm font-semibold">Select a GIF</h3>
-      <button
-        onClick={() => {
-          setShowGifPicker(false);
-          setGifs([]);
-          setGifSearchQuery("");
-          setGifOffset(0);
-        }}
-        className="btn btn-ghost btn-xs"
-        type="button"
-      >
-        <X className="size-4" />
-      </button>
-    </div>
-    
-    <input
-      type="text"
-      className="w-full input input-bordered input-sm mb-3"
-      placeholder="Search GIFs..."
-      value={gifSearchQuery}
-      onChange={(e) => setGifSearchQuery(e.target.value)}
-    />
 
-    <div
-      ref={gifContainerRef}
-      onScroll={handleGifScroll}
-      className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-60 sm:max-h-80 overflow-y-auto"
-    >
-      {gifs.map((gif) => (
-        <button
-          key={gif.id}
-          type="button"
-          onClick={() => handleSelectGif(gif)}
-          className="relative aspect-square overflow-hidden rounded-lg hover:opacity-80 transition-opacity"
-        >
-          <img
-            src={gif.images.fixed_height_small.url}
-            alt={gif.title}
-            className="w-full h-full object-cover"
+      {showGifPicker && (
+        <div className="mb-3 border border-zinc-700 rounded-lg bg-base-200 p-3">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-sm font-semibold">Select a GIF</h3>
+            <button
+              onClick={() => {
+                setShowGifPicker(false);
+                setGifs([]);
+                setGifSearchQuery("");
+                setGifOffset(0);
+              }}
+              className="btn btn-ghost btn-xs"
+              type="button"
+            >
+              <X className="size-4" />
+            </button>
+          </div>
+
+          <input
+            type="text"
+            className="w-full input input-bordered input-sm mb-3"
+            placeholder="Search GIFs..."
+            value={gifSearchQuery}
+            onChange={(e) => setGifSearchQuery(e.target.value)}
           />
-        </button>
-      ))}
-    </div>
 
-    {isLoadingGifs && (
-      <div className="text-center py-2">
-        <span className="loading loading-spinner loading-sm"></span>
-      </div>
-    )}
+          <div
+            ref={gifContainerRef}
+            onScroll={handleGifScroll}
+            className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-60 sm:max-h-80 overflow-y-auto"
+          >
+            {gifs.map((gif) => (
+              <button
+                key={gif.id}
+                type="button"
+                onClick={() => handleSelectGif(gif)}
+                className="relative aspect-square overflow-hidden rounded-lg hover:opacity-80 transition-opacity"
+              >
+                <img
+                  src={gif.images.fixed_height_small.url}
+                  alt={gif.title}
+                  className="w-full h-full object-cover"
+                />
+              </button>
+            ))}
+          </div>
 
-    {gifOffset >= 94 && (
-      <div className="text-center py-2 text-xs text-zinc-500">
-        Maximum GIFs loaded (100)
-      </div>
-    )}
-  </div>
-)}
-{/* ===== GIF PICKER MODAL END ===== */}
+          {isLoadingGifs && (
+            <div className="text-center py-2">
+              <span className="loading loading-spinner loading-sm"></span>
+            </div>
+          )}
+
+          {gifOffset >= 94 && (
+            <div className="text-center py-2 text-xs text-zinc-500">
+              Maximum GIFs loaded (100)
+            </div>
+          )}
+        </div>
+      )}
 
       <form onSubmit={handleSendMessage} className="flex items-center gap-2">
         <div className="flex-1 flex gap-2">
@@ -231,26 +268,25 @@ const handleSendMessage = async (e) => {
             onChange={handleImageChange}
           />
 
+          {/* Changed from "hidden sm:flex" to just "flex" to show on all screen sizes */}
           <button
             type="button"
-            className={`hidden sm:flex btn btn-circle
+            className={`flex btn btn-circle btn-sm sm:btn-md
                      ${imagePreview ? "text-emerald-500" : "text-zinc-400"}`}
             onClick={() => fileInputRef.current?.click()}
           >
             <Image size={20} />
           </button>
 
-          {/* ===== GIF BUTTON START ===== */}
-<button
-  type="button"
-  className={`hidden sm:flex btn btn-circle
-           ${showGifPicker ? "text-emerald-500" : "text-zinc-400"}`}
-  onClick={() => setShowGifPicker(!showGifPicker)}
->
-  <span className="font-bold text-sm">GIF</span>
-</button>
-
-{/* ===== GIF BUTTON END ===== */}
+          {/* Changed from "hidden sm:flex" to just "flex" to show on all screen sizes */}
+          <button
+            type="button"
+            className={`flex btn btn-circle btn-sm sm:btn-md
+                     ${showGifPicker ? "text-emerald-500" : "text-zinc-400"}`}
+            onClick={() => setShowGifPicker(!showGifPicker)}
+          >
+            <span className="font-bold text-xs sm:text-sm">GIF</span>
+          </button>
         </div>
         <button
           type="submit"

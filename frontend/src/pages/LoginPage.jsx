@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useAuthStore } from "../store/useAuthStore";
 import AuthImagePattern from "../components/AuthImagePattern";
 import { Link, useNavigate } from "react-router-dom";
@@ -205,7 +205,7 @@ const LoginPage = () => {
               </div>
 
               {/* Right Side - Image */}
-              <div className="hidden lg:flex flex-col justify-center border-l border-gray-700 pl-12 scale-95">
+              <div className="hidden lg:flex flex-col justify-center border-l border-gray-700 pl-12">
                 <AuthImagePattern
                   title="Welcome Back!"
                   subtitle="Sign in to continue your conversations and catch up with your messages."
