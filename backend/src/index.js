@@ -47,21 +47,14 @@ app.use(
   })
 );
 
-// Create required directories if they don't exist
+// Create temp directory if it doesn't exist
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const tempDir = path.join(__dirname, "../temp");
-const publicDir = path.join(__dirname, "../public");
-const voiceMessagesDir = path.join(publicDir, "voice-messages");
 
-// Create directories
-[tempDir, publicDir, voiceMessagesDir].forEach(dir => {
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
-  }
-});
-
-// Serve static files from the public directory
-app.use(express.static(publicDir));
+// Create temp directory for temporary file uploads
+if (!fs.existsSync(tempDir)) {
+  fs.mkdirSync(tempDir, { recursive: true });
+}
 
 app.use("/api/auth", authRoutes);
 app.use("/api/messages",messageRoutes);

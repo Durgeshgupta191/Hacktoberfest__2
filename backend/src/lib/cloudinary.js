@@ -19,8 +19,8 @@ if (hasCloudinaryConfig) {
     api_secret: apiSecret,
   });
 } else {
-  console.warn("⚠️ Cloudinary environment variables are not set properly. File uploads will use local storage fallback method.");
-  console.warn("To enable Cloudinary uploads, please set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET in your .env file.");
+  console.error("⚠️ Cloudinary environment variables are not set properly. Voice message functionality will be disabled.");
+  console.error("To enable voice messages, please set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET in your .env file.");
 }
 
 export default cloudinary;

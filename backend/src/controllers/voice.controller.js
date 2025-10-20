@@ -45,52 +45,39 @@ export const uploadVoiceMessage = async (req, res) => {
     const tempFilePath = audioFile.path;
     const fileExtension = path.extname(audioFile.originalname);
     
-    // Generate a waveform for visualization (we'll implement this function)
+    // Generate a waveform for visualization
     const waveformData = await extractAudioWaveform(tempFilePath);
 
-    let voiceMessageUrl = '';
-    let cloudinarySuccess = false;
-    
-    try {
-      // Check if Cloudinary is configured before attempting upload
-      if (process.env.CLOUDINARY_CLOUD_NAME && 
-          process.env.CLOUDINARY_API_KEY && 
-          process.env.CLOUDINARY_API_SECRET) {
-        
-        // Attempt to upload to Cloudinary
-        const cloudinaryResponse = await cloudinary.uploader.upload(tempFilePath, {
-          resource_type: "auto",
-          folder: "voice_messages",
-        });
-        
-        voiceMessageUrl = cloudinaryResponse.secure_url;
-        cloudinarySuccess = true;
-        console.log("Cloudinary upload successful:", voiceMessageUrl);
-      } else {
-        console.log("Cloudinary credentials not configured, using local path fallback");
-      }
-    } catch (cloudinaryError) {
-      console.error("Cloudinary upload failed:", cloudinaryError);
+    // Check if Cloudinary is configured
+    if (!process.env.CLOUDINARY_CLOUD_NAME || 
+        !process.env.CLOUDINARY_API_KEY || 
+        !process.env.CLOUDINARY_API_SECRET) {
+      // Remove temp file
+      fs.unlinkSync(tempFilePath);
+      return res.status(500).json({ 
+        error: "Cloudinary configuration missing",
+        message: "Voice messages require Cloudinary to be properly configured" 
+      });
     }
     
-    // If Cloudinary upload failed or wasn't configured, use a local file approach
-    if (!cloudinarySuccess) {
-      // Create a directory for storing voice messages if it doesn't exist
-      const voiceDir = path.join(process.cwd(), 'public', 'voice-messages');
-      if (!fs.existsSync(voiceDir)) {
-        fs.mkdirSync(voiceDir, { recursive: true });
-      }
+    // Upload to Cloudinary
+    let voiceMessageUrl;
+    try {
+      const cloudinaryResponse = await cloudinary.uploader.upload(tempFilePath, {
+        resource_type: "auto",
+        folder: "voice_messages",
+      });
       
-      // Generate a unique filename
-      const fileName = `voice-${Date.now()}-${Math.floor(Math.random() * 1000)}${fileExtension}`;
-      const localFilePath = path.join(voiceDir, fileName);
-      
-      // Copy the temp file to our public directory
-      fs.copyFileSync(tempFilePath, localFilePath);
-      
-      // Create a URL accessible from the frontend
-      voiceMessageUrl = `${req.protocol}://${req.get('host')}/voice-messages/${fileName}`;
-      console.log("Using local storage fallback:", voiceMessageUrl);
+      voiceMessageUrl = cloudinaryResponse.secure_url;
+      console.log("Cloudinary upload successful:", voiceMessageUrl);
+    } catch (cloudinaryError) {
+      console.error("Cloudinary upload failed:", cloudinaryError);
+      // Remove temp file
+      fs.unlinkSync(tempFilePath);
+      return res.status(500).json({ 
+        error: "Voice message upload failed", 
+        message: "Failed to upload voice message to Cloudinary"
+      });
     }
 
     // Remove the temporary file after upload

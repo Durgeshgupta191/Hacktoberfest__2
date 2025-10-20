@@ -180,7 +180,13 @@ const VoiceRecorder = ({ onClose }) => {
       toast.success('Voice message sent');
     } catch (error) {
       console.error('Error sending voice message:', error);
-      toast.error('Failed to send voice message');
+      
+      // Check if this is a Cloudinary configuration error
+      if (error.message && error.message.includes('Cloudinary configuration')) {
+        toast.error('Voice messages are currently unavailable. Please contact an administrator.');
+      } else {
+        toast.error('Failed to send voice message');
+      }
     }
   };
 

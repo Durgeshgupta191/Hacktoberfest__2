@@ -24,3 +24,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Voice message files
+backend/public/voice-messages/
+backend/temp/
+
