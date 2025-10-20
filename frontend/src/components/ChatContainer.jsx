@@ -61,12 +61,12 @@ const ChatContainer = ({showSidebar, setShowSidebar}) => {
   };
 
   return (
-    <div className="flex flex-col h-full overflow-hidden relative bg-base-100/50">
+    <div className="flex flex-col w-full h-full overflow-hidden relative bg-base-100/50">
       {/* Chat header */}
       <ChatHeader user={selectedUser} setShowSidebar={setShowSidebar} />
 
       {/* Chat messages */}
-      <div className="flex-1 overflow-y-auto p-4">
+      <div className="flex-1 w-full overflow-y-auto p-4">
         {isMessagesLoading ? (
           // RESPONSIVE: Show loading skeletons with proper sizing
           <div className="flex flex-col space-y-4">

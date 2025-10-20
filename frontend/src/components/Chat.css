@@ -2,7 +2,7 @@
 
 /* Base message container */
 .message-container {
-  display: flex;
+  /* display: flex; */
   margin-bottom: 16px;
   max-width: 100%;
 }
