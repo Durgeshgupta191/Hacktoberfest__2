@@ -12,7 +12,9 @@ const userSchema = new mongoose.Schema(
     },
     password: {
       type: String,
-      required: true,
+      required: function () {
+        return this.provider === 'email'; // Only required for email signups
+      },
       minlength: 6,
     },
     profilePic: {
@@ -40,6 +42,20 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+
+    isVerified: {
+      type: Boolean,
+      default: false
+    },
+    googleId: {
+      type: String,
+      sparse: true
+    },
+    provider: {
+      type: String,
+      enum: ['email', 'google'],
+      default: 'email'
+    }
   },
   { timestamps: true }
 );

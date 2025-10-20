@@ -1,123 +1,272 @@
-import User from "../models/user.model.js"
-import {generateToken} from "../lib/utils.js"
-import bcrypt from "bcryptjs"
-import cloudinary from "../lib/cloudinary.js"
-import { generateKeyPair } from "../lib/encryption.js"
+import User from "../models/user.model.js";
+import OTP from "../models/otp.model.js";
+import { generateToken } from "../lib/utils.js";
+import { generateOTP } from "../lib/otp.js";
+import { sendOTPEmail } from "../lib/emailService.js";
+import { verifyGoogleToken } from "../lib/google.js";
+import bcryptjs from "bcryptjs";
+import cloudinary from "../lib/cloudinary.js";
+import { generateKeyPair } from "../lib/encryption.js";
 
-export const signup = async(req,res) =>{
-    const {fullName,email,password} = req.body
-    
-    try{
-        if(!fullName || !email || !password){
-            return res.status(400).json({message: "All fields are required!"});
+
+// SIGNUP - Send OTP
+export const signup = async (req, res) => {
+    const { fullName, email, password } = req.body;
+
+    try {
+        if (!fullName || !email || !password) {
+            return res.status(400).json({ message: "All fields are required!" });
         }
-        // hash password
-        if(password.length < 6){
-            return res.status(400).json({message: "Password must be at least 6 characters"});
+
+        if (password.length < 6) {
+            return res.status(400).json({ message: "Password must be at least 6 characters" });
         }
-        const user = await User.findOne({email})
-        
-        if(user) return res.status(400).json({message: "Email already exists"});
-        
-        const salt = await bcrypt.genSalt(10)
-        const hashedPassword = await bcrypt.hash(password,salt)
-        
-        // Generate RSA key pair for end-to-end encryption
+
+        const existingUser = await User.findOne({ email });
+        if (existingUser) {
+            return res.status(400).json({ message: "Email already exists" });
+        }
+
+        // Generate OTP
+        const otp = generateOTP();
+
+        // Save OTP to database
+        await OTP.findOneAndUpdate(
+            { email },
+            { email, otp },
+            { upsert: true }
+        );
+
+        // Send OTP email
+        await sendOTPEmail(email, otp);
+
+        // Create unverified user with hashed password
+        const salt = await bcryptjs.genSalt(10);
+        const hashedPassword = await bcryptjs.hash(password, salt);
+
         const { publicKey, privateKey } = generateKeyPair();
-        
+
         const newUser = new User({
             fullName,
             email,
             password: hashedPassword,
             publicKey,
-            privateKey
-        })
+            privateKey,
+            isVerified: false,
+            provider: "email",
+        });
 
-        if(newUser){
-            // generate jwt token here
-            generateToken(newUser._id,res)
-            await newUser.save();
-            res.status(201).json({
-                _id: newUser._id,
-                fullName: newUser.fullName,
-                email: newUser.email,
-                profilePic: newUser.profilePic,
-                publicKey: newUser.publicKey,
-            });
-        } else{
-            res.status(400).json({message: "Invalid user data"});
-        }
-
-    } catch(error){
-        console.log("Error in signup controller", error.message);
-        res.status(500).json({message: "Internal Server Error"});
-    }
-}
-
-export const login = async(req,res) =>{
-    const {email,password} = req.body;
-    try{
-        const user = await User.findOne({email});
-        if(!user){
-            return res.status(400).json({message: "Invalid credentials"})
-        }
-        const isPasswordCorrect = await bcrypt.compare(password,user.password)
-        if(!isPasswordCorrect){
-            return res.status(400).json({message: "Invalid credentials"});
-        }
-        generateToken(user._id,res)
+        await newUser.save();
 
         res.status(200).json({
-            _id:user._id,
-            fullName:user.fullName,
-            email:user.email,
-            profilePic:user.profilePic,
-            publicKey:user.publicKey,
-        })
-    } catch(error){
+            message: "OTP sent to email",
+            email,
+        });
+    } catch (error) {
+        console.log("Error in signup controller", error.message);
+        res.status(500).json({ message: "Internal Server Error" });
+    }
+};
+
+// VERIFY OTP
+export const verifyOTP = async (req, res) => {
+    const { email, otp } = req.body;
+
+    try {
+        const otpRecord = await OTP.findOne({ email });
+        if (!otpRecord) {
+            return res.status(400).json({ message: "OTP expired or not found" });
+        }
+
+        if (otpRecord.otp !== otp) {
+            return res.status(400).json({ message: "Invalid OTP" });
+        }
+
+        // Mark user as verified
+        const user = await User.findOneAndUpdate(
+            { email },
+            { isVerified: true },
+            { new: true }
+        );
+
+        if (!user) {
+            return res.status(400).json({ message: "User not found" });
+        }
+
+        // Delete OTP
+        await OTP.deleteOne({ email });
+
+        // Generate JWT
+        generateToken(user._id, res);
+
+        res.status(200).json({
+            _id: user._id,
+            fullName: user.fullName,
+            email: user.email,
+            profilePic: user.profilePic,
+            publicKey: user.publicKey,
+            isVerified: user.isVerified,
+        });
+    } catch (error) {
+        console.log("Error in verifyOTP controller", error.message);
+        res.status(500).json({ message: "Internal Server Error" });
+    }
+};
+
+// RESEND OTP
+export const resendOTP = async (req, res) => {
+    const { email } = req.body;
+
+    try {
+        const user = await User.findOne({ email });
+        if (!user || user.isVerified) {
+            return res.status(400).json({ message: "Invalid email or already verified" });
+        }
+
+        const otp = generateOTP();
+        await OTP.findOneAndUpdate(
+            { email },
+            { email, otp },
+            { upsert: true }
+        );
+
+        await sendOTPEmail(email, otp);
+
+        res.status(200).json({ message: "OTP resent" });
+    } catch (error) {
+        console.log("Error in resendOTP controller", error.message);
+        res.status(500).json({ message: "Internal Server Error" });
+    }
+};
+
+// GOOGLE LOGIN
+export const googleLogin = async (req, res) => {
+    const { token } = req.body;
+
+    try {
+        const payload = await verifyGoogleToken(token);
+        const { email, name, picture } = payload;
+
+        let user = await User.findOne({ email });
+
+        if (!user) {
+            const { publicKey, privateKey } = generateKeyPair();
+            user = await User.create({
+                fullName: name,
+                email,
+                profilePic: picture,
+                googleId: payload.sub,
+                isVerified: true,
+                provider: "google",
+                publicKey,
+                privateKey,
+            });
+        } else {
+            user = await User.findByIdAndUpdate(
+                user._id,
+                {
+                    googleId: payload.sub,
+                    isVerified: true,
+                    provider: "google",
+                },
+                { new: true }
+            );
+        }
+
+        generateToken(user._id, res);
+
+        res.status(200).json({
+            _id: user._id,
+            fullName: user.fullName,
+            email: user.email,
+            profilePic: user.profilePic,
+            publicKey: user.publicKey,
+            isVerified: user.isVerified,
+            provider: user.provider,
+        });
+    } catch (error) {
+        console.log("Error in googleLogin controller", error.message);
+        res.status(500).json({ message: "Internal Server Error" });
+    }
+};
+
+// LOGIN - Check if user is verified
+export const login = async (req, res) => {
+    const { email, password } = req.body;
+
+    try {
+        const user = await User.findOne({ email });
+        if (!user) {
+            return res.status(400).json({ message: "Invalid credentials" });
+        }
+
+        if (!user.isVerified) {
+            return res.status(403).json({
+                message: "Email not verified. Please verify your email first.",
+                requiresOTP: true,
+            });
+        }
+
+        const isPasswordCorrect = await bcryptjs.compare(password, user.password);
+        if (!isPasswordCorrect) {
+            return res.status(400).json({ message: "Invalid credentials" });
+        }
+
+        generateToken(user._id, res);
+
+        res.status(200).json({
+            _id: user._id,
+            fullName: user.fullName,
+            email: user.email,
+            profilePic: user.profilePic,
+            publicKey: user.publicKey,
+            isVerified: user.isVerified,
+        });
+    } catch (error) {
         console.log("Error in login controller", error.message);
-        res.status(500).json({message: "Internal Server Error"});
+        res.status(500).json({ message: "Internal Server Error" });
     }
 };
 
 export const logout = (req, res) => {
-  try {
-    res.cookie("jwt", "", { // Set the value to an empty string
-      maxAge: 0, // Set maxAge to 0 to expire it immediately
-      httpOnly: true,
-      secure: process.env.NODE_ENV !== "development",
-      sameSite: "none", // MUST match the login cookie's SameSite attribute
-    });
-
-    res.status(200).json({ message: "Logged out successfully" });
-  } catch (error) {
-    console.log("Error in logout controller", error.message);
-    res.status(500).json({ message: "Internal server Error" });
-  }
+    try {
+        res.clearCookie("jwt", {
+            httpOnly: true,
+            sameSite: process.env.NODE_ENV === "development" ? "lax" : "none",
+            secure: process.env.NODE_ENV !== "development"
+        });
+        res.status(200).json({ message: "Logged out successfully" });
+    } catch (error) {
+        console.log("Error in logout controller", error.message);
+        res.status(500).json({ message: "Internal server Error" });
+    }
 };
 
-export const updateProfile = async(req,res) =>{
-    try{
-        const {profilePic} = req.body;
+export const updateProfile = async (req, res) => {
+    try {
+        const { profilePic } = req.body;
         const userId = req.user._id;
-        if(!profilePic){
-            return res.status(400).json({message: "Profile pic is required"});
+        if (!profilePic) {
+            return res.status(400).json({ message: "Profile pic is required" });
         }
-        const uploadResponse = await cloudinary.uploader.upload(profilePic)
-        const updatedUser = await User.findByIdAndUpdate(userId,{profilePic:uploadResponse.secure_url},{new:true})
-        res.status(200).json(updatedUser)
-
-    } catch(error){
+        const uploadResponse = await cloudinary.uploader.upload(profilePic);
+        const updatedUser = await User.findByIdAndUpdate(
+            userId,
+            { profilePic: uploadResponse.secure_url },
+            { new: true }
+        );
+        res.status(200).json(updatedUser);
+    } catch (error) {
         console.log("Error In update profile:", error);
-        res.status(500).json({message: "Internal server error"});
+        res.status(500).json({ message: "Internal server error" });
     }
-}
+};
 
-export const checkAuth = (req,res) =>{
-    try{
-        res.status(200).json(req.user); // give detail of Authenticated user
-    } catch(error){
-        console.log("Error in checkAuth controller",error.message);
-        res.status(500).json({message: "Internal Server Error"});
+export const checkAuth = (req, res) => {
+    try {
+        res.status(200).json(req.user);
+    } catch (error) {
+        console.log("Error in checkAuth controller", error.message);
+        res.status(500).json({ message: "Internal Server Error" });
     }
-}
+};
