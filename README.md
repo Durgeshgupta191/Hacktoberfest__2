@@ -65,14 +65,35 @@ Create a `.env` file in your `frontend/` directory with the following keys:
 VITE_GIPHY_API=
 ```
 
+### Installation
+
+**Option 1: Run with Docker**
+
+1. **Build and run the Docker containers**
+   ```bash
+   docker-compose up --build
+   ```
+2. **Access the application**
+   - Frontend: http://localhost:5173
+   - Backend: http://localhost:5001
+
+**Option 2: Run both servers manually**
 ```bash
-cd ../frontend
+
+cd backend
 npm install
 
-cd ../backend
+cd frontend
+npm install
+
+cd backend
 npm run dev
 
-cd ../frontend
+cd frontend
 npm run dev
+
 ```
+ **Access the application**
+   - Frontend: http://localhost:5173
+   - Backend: http://localhost:5001
 
