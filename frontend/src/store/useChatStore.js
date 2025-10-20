@@ -243,6 +243,48 @@ export const useChatStore = create((set, get) => ({
     socket.on("messageDeleted", ({ _id }) => {
       set({ messages: get().messages.filter((m) => m._id !== _id) });
     });
+
+    socket.on("messageReactionAdded", (updatedMessage) => {
+      console.debug("[socket] messageReactionAdded received", updatedMessage);
+      
+      // Force a more complete refresh to ensure UI updates properly
+      if (updatedMessage.groupId) {
+        // For group messages
+        const groupMessages = get().groupMessages || [];
+        const updatedMessages = groupMessages.map((m) => 
+          m._id === updatedMessage._id ? {...updatedMessage} : m
+        );
+        set({ groupMessages: [...updatedMessages] });
+      } else {
+        // For direct messages
+        const messages = get().messages || [];
+        const updatedMessages = messages.map((m) =>
+          m._id === updatedMessage._id ? {...updatedMessage} : m
+        );
+        set({ messages: [...updatedMessages] });
+      }
+    });
+
+    socket.on("messageReactionRemoved", (updatedMessage) => {
+      console.debug("[socket] messageReactionRemoved received", updatedMessage);
+      
+      // Force a more complete refresh to ensure UI updates properly
+      if (updatedMessage.groupId) {
+        // For group messages
+        const groupMessages = get().groupMessages || [];
+        const updatedMessages = groupMessages.map((m) => 
+          m._id === updatedMessage._id ? {...updatedMessage} : m
+        );
+        set({ groupMessages: [...updatedMessages] });
+      } else {
+        // For direct messages
+        const messages = get().messages || [];
+        const updatedMessages = messages.map((m) =>
+          m._id === updatedMessage._id ? {...updatedMessage} : m
+        );
+        set({ messages: [...updatedMessages] });
+      }
+    });
   },
 
   unsubscribeFromMessages: () => {
@@ -250,6 +292,8 @@ export const useChatStore = create((set, get) => ({
     socket.off("newMessage");
     socket.off("messageUpdated");
     socket.off("messageDeleted");
+    socket.off("messageReactionAdded");
+    socket.off("messageReactionRemoved");
   },
 
   setSelectedUser: (selectedUser) => set({ selectedUser }),
@@ -435,6 +479,9 @@ export const useChatStore = create((set, get) => ({
     const { selectedGroup } = get();
     if (!selectedGroup) return;
     const socket = useAuthStore.getState().socket;
+    
+    // Join the group room for socket events
+    socket.emit("joinGroup", selectedGroup._id);
 
     socket.on("newGroupMessage", (newMessage) => {
       const { groupMessages } = get();
@@ -457,11 +504,31 @@ export const useChatStore = create((set, get) => ({
         get().notifyNewMessage(newMessage, { isGroup: true });
       }
     });
+    
+    socket.on("messageReactionAdded", (updatedMessage) => {
+      console.debug("[socket] messageReactionAdded received in group", updatedMessage);
+      set({
+        groupMessages: get().groupMessages.map((m) =>
+          m._id === updatedMessage._id ? updatedMessage : m
+        ),
+      });
+    });
+
+    socket.on("messageReactionRemoved", (updatedMessage) => {
+      console.debug("[socket] messageReactionRemoved received in group", updatedMessage);
+      set({
+        groupMessages: get().groupMessages.map((m) =>
+          m._id === updatedMessage._id ? updatedMessage : m
+        ),
+      });
+    });
   },
 
   unsubscribeFromGroupMessages: () => {
     const socket = useAuthStore.getState().socket;
     socket.off("newGroupMessage");
+    socket.off("messageReactionAdded");
+    socket.off("messageReactionRemoved");
   },
 
   addGroupMembers: async (groupId, userIds) => {

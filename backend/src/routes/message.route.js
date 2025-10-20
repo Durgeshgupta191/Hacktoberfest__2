@@ -4,6 +4,7 @@ import {getUsersForSidebar,getMessages,sendMessage,getUserPublicKey,getMyPrivate
     pinChat,unpinChat,getPinnedChats,archiveChat,
   unarchiveChat,
   getArchivedChats, editMessage, deleteMessage} from "../controllers/message.controller.js"
+import { addReaction, getReactions, removeReaction } from "../controllers/reaction.controller.js";
 
 const router = express.Router();
 
@@ -21,5 +22,10 @@ router.post("/archive/:id", protectRoute, archiveChat);
 router.post("/unarchive/:id", protectRoute, unarchiveChat);
 router.put("/edit/:messageId", protectRoute, editMessage);
 router.delete("/delete/:messageId", protectRoute, deleteMessage);
+
+// Message reactions routes
+router.post("/reaction/:messageId", protectRoute, addReaction);
+router.get("/reaction/:messageId", protectRoute, getReactions);
+router.delete("/reaction/:messageId", protectRoute, removeReaction);
 
 export default router;

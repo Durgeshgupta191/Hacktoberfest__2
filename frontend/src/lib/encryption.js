@@ -100,23 +100,41 @@ export async function decryptMessage(encryptedData, key) {
  * @returns {Promise<CryptoKey>} Imported public key
  */
 export async function importRSAPublicKey(pemKey) {
-    // Remove PEM headers and decode base64
-    const pemHeader = "-----BEGIN PUBLIC KEY-----";
-    const pemFooter = "-----END PUBLIC KEY-----";
-    const pemContents = pemKey.substring(pemHeader.length, pemKey.length - pemFooter.length);
-    const binaryDerString = window.atob(pemContents.replace(/\s/g, ''));
-    const binaryDer = str2ab(binaryDerString);
-    
-    return await window.crypto.subtle.importKey(
-        'spki',
-        binaryDer,
-        {
-            name: 'RSA-OAEP',
-            hash: 'SHA-256',
-        },
-        true,
-        ['encrypt']
-    );
+    try {
+        // Process PEM format correctly
+        // Make sure the key has proper PEM format
+        let processedKey = pemKey.trim();
+        const pemHeader = "-----BEGIN PUBLIC KEY-----";
+        const pemFooter = "-----END PUBLIC KEY-----";
+        
+        // Add headers if they don't exist
+        if (!processedKey.includes(pemHeader)) {
+            processedKey = `${pemHeader}\n${processedKey}\n${pemFooter}`;
+        }
+        
+        // Extract the base64 part
+        const parts = processedKey.split(/\r?\n/);
+        const base64Content = parts
+            .filter(line => !line.includes('-----BEGIN') && !line.includes('-----END'))
+            .join('');
+            
+        const binaryDerString = window.atob(base64Content);
+        const binaryDer = str2ab(binaryDerString);
+        
+        return await window.crypto.subtle.importKey(
+            'spki',
+            binaryDer,
+            {
+                name: 'RSA-OAEP',
+                hash: 'SHA-256',
+            },
+            true,
+            ['encrypt']
+        );
+    } catch (error) {
+        console.error("Error importing public key:", error);
+        throw new Error("Failed to import public key: " + error.message);
+    }
 }
 
 /**
@@ -125,23 +143,41 @@ export async function importRSAPublicKey(pemKey) {
  * @returns {Promise<CryptoKey>} Imported private key
  */
 export async function importRSAPrivateKey(pemKey) {
-    // Remove PEM headers and decode base64
-    const pemHeader = "-----BEGIN PRIVATE KEY-----";
-    const pemFooter = "-----END PRIVATE KEY-----";
-    const pemContents = pemKey.substring(pemHeader.length, pemKey.length - pemFooter.length);
-    const binaryDerString = window.atob(pemContents.replace(/\s/g, ''));
-    const binaryDer = str2ab(binaryDerString);
+    try {
+        // Process PEM format correctly
+        // Make sure the key has proper PEM format
+        let processedKey = pemKey.trim();
+        const pemHeader = "-----BEGIN PRIVATE KEY-----";
+        const pemFooter = "-----END PRIVATE KEY-----";
+        
+        // Add headers if they don't exist
+        if (!processedKey.includes(pemHeader)) {
+            processedKey = `${pemHeader}\n${processedKey}\n${pemFooter}`;
+        }
+        
+        // Extract the base64 part
+        const parts = processedKey.split(/\r?\n/);
+        const base64Content = parts
+            .filter(line => !line.includes('-----BEGIN') && !line.includes('-----END'))
+            .join('');
+            
+        const binaryDerString = window.atob(base64Content);
+        const binaryDer = str2ab(binaryDerString);
     
-    return await window.crypto.subtle.importKey(
-        'pkcs8',
-        binaryDer,
-        {
-            name: 'RSA-OAEP',
-            hash: 'SHA-256',
-        },
-        true,
-        ['decrypt']
-    );
+        return await window.crypto.subtle.importKey(
+            'pkcs8',
+            binaryDer,
+            {
+                name: 'RSA-OAEP',
+                hash: 'SHA-256',
+            },
+            true,
+            ['decrypt']
+        );
+    } catch (error) {
+        console.error("Error importing private key:", error);
+        throw new Error("Failed to import private key: " + error.message);
+    }
 }
 
 /**

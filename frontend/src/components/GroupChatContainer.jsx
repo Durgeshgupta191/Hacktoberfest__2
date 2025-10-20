@@ -5,6 +5,8 @@ import ChatHeader from "./ChatHeader";
 import MessageInput from "./MessageInput";
 import MessageSkeleton from "./skeletons/MessageSkeleton";
 import { formatMessageTime } from "../lib/utils";
+import MessageReactions from "./MessageReactions";
+import "./Chat.css";
 
 const GroupChatContainer = ({ showSidebar, setShowSidebar }) => {
   const {
@@ -282,41 +284,71 @@ const GroupChatContainer = ({ showSidebar, setShowSidebar }) => {
           </div>
         </div>
       )}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {groupMessages.map((msg) => (
-          <div
-            key={msg._id}
-            className={`chat ${
-              msg.senderId._id === authUser._id ? "chat-end" : "chat-start"
-            }`}
-            ref={messageEndRef}
-          >
-            <div className="chat-image avatar">
-              <div className="size-10 rounded-full border">
-                <img
-                  src={msg.senderId.profilePic || "/avatar.png"}
-                  alt="user"
-                />
+      <div className="flex-1 overflow-y-auto p-4">
+        {groupMessages.map((msg) => {
+          const isOwnMessage = msg.senderId._id === authUser._id;
+          return (
+            <div key={msg._id} className="message-container">
+              <div className={`flex ${isOwnMessage ? "message-right" : "message-left"}`}>
+                {/* Profile picture */}
+                {!isOwnMessage && (
+                  <div className="avatar-container">
+                    <div className="avatar-image">
+                      <img
+                        src={msg.senderId.profilePic || "/avatar.png"}
+                        alt="user"
+                      />
+                    </div>
+                  </div>
+                )}
+                
+                <div className="message-content">
+                  {/* Message header with name and time */}
+                  <div className="message-header">
+                    <span className="font-semibold">
+                      {isOwnMessage ? "You" : msg.senderId.fullName}
+                    </span>
+                    <time className="ml-2">
+                      {formatMessageTime(msg.createdAt)}
+                    </time>
+                  </div>
+                  
+                  {/* Message bubble */}
+                  <div className={`message-bubble ${isOwnMessage ? "sender-bubble" : "receiver-bubble"}`}>
+                    {msg.image && (
+                      <img
+                        src={msg.image}
+                        alt="Attachment"
+                        className="message-image"
+                      />
+                    )}
+                    {msg.text && <p>{msg.text}</p>}
+                  </div>
+                  
+                  {/* Reactions */}
+                  <div className="message-actions">
+                    <MessageReactions 
+                      message={msg} 
+                      isOwnMessage={isOwnMessage} 
+                    />
+                  </div>
+                </div>
+                
+                {isOwnMessage && (
+                  <div className="avatar-container">
+                    <div className="avatar-image">
+                      <img
+                        src={authUser?.profilePic || "/avatar.png"}
+                        alt="user"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
-            <div className="chat-header mb-1">
-              <span className="font-semibold">{msg.senderId.fullName}</span>
-              <time className="text-xs opacity-50 ml-1">
-                {formatMessageTime(msg.createdAt)}
-              </time>
-            </div>
-            <div className="chat-bubble flex flex-col">
-              {msg.image && (
-                <img
-                  src={msg.image}
-                  alt="Attachment"
-                  className="sm:max-w-[200px] rounded-md mb-2"
-                />
-              )}
-              {msg.text && <p>{msg.text}</p>}
-            </div>
-          </div>
-        ))}
+          );
+        })}
+        <div ref={messageEndRef} />
       </div>
 
       <MessageInput isGroup />
