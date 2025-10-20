@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useAuthStore } from "../store/useAuthStore";
 import AuthImagePattern from "../components/AuthImagePattern";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Eye,
   EyeOff,
@@ -12,19 +12,22 @@ import {
   User,
 } from "lucide-react";
 import Footer from "../components/Footer";
-import { FaGoogle, FaGithub } from "react-icons/fa";
-import toast from "../lib/toast";
+import toast from "react-hot-toast";
+import { GoogleLogin } from "@react-oauth/google";
 
-const SignUpPage = () => {
+const SignupPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
     password: "",
+    confirmPassword: "",
   });
-  const { signup, isSigningUp } = useAuthStore();
+  const [passwordError, setPasswordError] = useState("");
+  const navigate = useNavigate();
+  const { signup, isSigningUp, googleLogin } = useAuthStore();
 
-  // ✅ Scroll to top when component mounts
+  // Scroll to top when component mounts
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
@@ -42,32 +45,52 @@ const SignUpPage = () => {
       toast.error("Invalid email format");
       return false;
     }
-    if (!formData.password) {
-      toast.error("Password is required");
-      return false;
-    }
-    if (formData.password.length < 6) {
+    if (!formData.password || formData.password.length < 6) {
       toast.error("Password must be at least 6 characters");
       return false;
     }
+    if (formData.password !== formData.confirmPassword) {
+      toast.error("Passwords do not match");
+      setPasswordError("Passwords do not match");
+      return false;
+    }
+
+    setPasswordError("");
     return true;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // ✅ Scroll to top on submit (to show toast or any success message)
+    // Scroll to top on form submission
     window.scrollTo({ top: 0, behavior: "smooth" });
 
     if (!validateForm()) return;
 
     try {
       await signup(formData);
+      navigate("/verify-otp");
     } catch (err) {
       // Prefer server-provided message when available
-      const message = err?.response?.data?.message || err?.message || 'Sign up failed. Please try again.';
+      const message =
+        err?.response?.data?.message ||
+        err?.message ||
+        "Sign up failed. Please try again.";
       toast.error(message);
     }
+  };
+
+  const handleGoogleSuccess = async (credentialResponse) => {
+    try {
+      await googleLogin(credentialResponse.credential);
+      navigate("/");
+    } catch (err) {
+      toast.error(err?.message || "Google login failed");
+    }
+  };
+
+  const handleGoogleError = () => {
+    toast.error("Google login failed. Please try again.");
   };
 
   return (
@@ -82,22 +105,41 @@ const SignUpPage = () => {
             {/* Grid Layout */}
             <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
               {/* Left Side - Sign Up Form */}
-              <div className="flex flex-col justify-center max-w-md mx-auto w-full">
-                <form onSubmit={handleSubmit} className="space-y-5">
-                  <div className="text-center mb-8">
-                    <div className="flex flex-col items-center gap-4">
-                      <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center border border-[#605dff]/30">
-                        <MessageSquare className="w-8 h-8 text-[#605dff]" />
-                      </div>
-                      <h1 className="text-4xl font-bold text-white">
-                        Create Account
-                      </h1>
-                      <p className="text-gray-400 text-base">
-                        Get started with your free account
-                      </p>
+              <div className="flex flex-col justify-center max-w-md mx-auto w-full p-10">
+                <div className="text-center mb-8">
+                  <div className="flex flex-col items-center gap-4">
+                    <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center border border-[#605dff]/30">
+                      <MessageSquare className="w-8 h-8 text-[#605dff]" />
+                    </div>
+                    <h1 className="text-4xl font-bold text-white">
+                      Create Account
+                    </h1>
+                    <p className="text-gray-400 text-base">
+                      Get started with your free account
+                    </p>
+                  </div>
+                </div>
+
+                {/* Google Sign-In */}
+                <div className="space-y-4 mb-5">
+                  <GoogleLogin
+                    onSuccess={handleGoogleSuccess}
+                    onError={handleGoogleError}
+                    theme="filled_black"
+                    size="large"
+                    width="100%"
+                  />
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                      <div className="w-full border-t border-gray-700"></div>
+                    </div>
+                    <div className="relative flex justify-center text-sm">
+                      <span className="px-2 bg-[#0f1419] text-gray-400">or</span>
                     </div>
                   </div>
+                </div>
 
+                <form onSubmit={handleSubmit} className="space-y-5">
                   {/* Full Name */}
                   <div className="relative">
                     <User className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 w-5 h-5 z-10" />
@@ -184,6 +226,59 @@ const SignUpPage = () => {
                     </button>
                   </div>
 
+                  {/* Confirm Password */}
+                  <div className="relative">
+                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 w-5 h-5 z-10" />
+                    <input
+                      id="confirmPassword"
+                      type={showPassword ? "text" : "password"}
+                      className={`peer w-full bg-[#2d3748] text-white rounded-xl border ${
+                        passwordError ? "border-red-500" : "border-gray-700"
+                      } focus:border-[#605dff] focus:ring-2 ${
+                        passwordError
+                          ? "focus:ring-red-500/40"
+                          : "focus:ring-[#605dff]/40"
+                      } transition-all duration-200 pl-12 pr-12 py-3.5 outline-none`}
+                      placeholder=" "
+                      value={formData.confirmPassword}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        setFormData({ ...formData, confirmPassword: value });
+                        if (formData.password && formData.password !== value) {
+                          setPasswordError("Passwords do not match");
+                        } else {
+                          setPasswordError("");
+                        }
+                      }}
+                      required
+                    />
+                    <label
+                      htmlFor="confirmPassword"
+                      className="absolute left-12 top-1/2 -translate-y-1/2 text-gray-400 transition-all duration-200
+                                peer-placeholder-shown:top-1/2 peer-placeholder-shown:text-base
+                                peer-focus:top-2 peer-focus:-translate-y-0 peer-focus:text-xs peer-focus:text-[#605dff]
+                                peer-[:not(:placeholder-shown)]:top-2 peer-[:not(:placeholder-shown)]:-translate-y-0 peer-[:not(:placeholder-shown)]:text-xs peer-[:not(:placeholder-shown)]:text-[#605dff]"
+                    >
+                      Confirm Password
+                    </label>
+                    <button
+                      type="button"
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-[#605dff] transition z-10"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-5 w-5" />
+                      ) : (
+                        <Eye className="h-5 w-5" />
+                      )}
+                    </button>
+                  </div>
+
+                  {/* Error Message */}
+                  {passwordError && (
+                    <p className="text-red-400 text-sm -mt-2">{passwordError}</p>
+                  )}
+
                   {/* Submit */}
                   <button
                     type="submit"
@@ -199,26 +294,6 @@ const SignUpPage = () => {
                       "Create Account"
                     )}
                   </button>
-
-                  {/* <div className="text-center text-gray-400 text-sm">
-                    Or continue with
-                  </div> */}
-
-                  {/* Social Logins */}
-                  {/* <div className="flex gap-4">
-                    <button
-                      type="button"
-                      className="flex-1 flex items-center justify-center gap-2 bg-[#2d3748] text-white py-3 rounded-xl border border-gray-700 hover:bg-gray-700 transition-all duration-200"
-                    >
-                      <FaGoogle /> Google
-                    </button>
-                    <button
-                      type="button"
-                      className="flex-1 flex items-center justify-center gap-2 bg-[#2d3748] text-white py-3 rounded-xl border border-gray-700 hover:bg-gray-700 transition-all duration-200"
-                    >
-                      <FaGithub /> GitHub
-                    </button>
-                  </div> */}
                 </form>
 
                 <div className="text-center mt-6">
@@ -235,7 +310,7 @@ const SignUpPage = () => {
               </div>
 
               {/* Right Side - Image */}
-              <div className="hidden lg:flex flex-col justify-center border-l border-gray-700 pl-12">
+              <div className="hidden lg:flex flex-col justify-center border-l border-gray-700 pl-12 pr-2">
                 <AuthImagePattern
                   title="Join our community"
                   subtitle="Connect with friends, share moments, and stay in touch with your loved ones."
@@ -250,4 +325,4 @@ const SignUpPage = () => {
   );
 };
 
-export default SignUpPage;
+export default SignupPage;

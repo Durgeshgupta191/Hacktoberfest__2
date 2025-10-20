@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+
 const userSchema = new mongoose.Schema(
   {
     email: {
@@ -12,7 +13,9 @@ const userSchema = new mongoose.Schema(
     },
     password: {
       type: String,
-      required: true,
+      required: function () {
+        return this.provider === "email"; // only required for email signups
+      },
       minlength: 6,
     },
     profilePic: {
@@ -31,7 +34,12 @@ const userSchema = new mongoose.Schema(
         ref: "User",
       },
     ],
-
+    blockedUsers: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
     publicKey: {
       type: String,
       default: "",
@@ -39,6 +47,19 @@ const userSchema = new mongoose.Schema(
     privateKey: {
       type: String,
       default: "",
+    },
+    isVerified: {
+      type: Boolean,
+      default: false,
+    },
+    googleId: {
+      type: String,
+      sparse: true,
+    },
+    provider: {
+      type: String,
+      enum: ["email", "google"],
+      default: "email",
     },
     lastSeen: {
       type: Date,
@@ -49,5 +70,4 @@ const userSchema = new mongoose.Schema(
 );
 
 const User = mongoose.model("User", userSchema);
-
 export default User;

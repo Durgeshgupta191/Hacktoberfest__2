@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import { useAuthStore } from "../store/useAuthStore";
 import AuthImagePattern from "../components/AuthImagePattern";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Eye, EyeOff, Loader2, Lock, Mail, MessageSquare } from "lucide-react";
 import Footer from "../components/Footer";
-import { FaGoogle, FaGithub } from "react-icons/fa";
-import toast from "../lib/toast";
+import toast from "react-hot-toast";
+import { GoogleLogin } from "@react-oauth/google";
 
 const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -13,16 +13,14 @@ const LoginPage = () => {
     email: "",
     password: "",
   });
+  const navigate = useNavigate();
+  const { login, isLoggingIn, googleLogin } = useAuthStore();
 
-  const { login, isLoggingIn } = useAuthStore();
-
-  // ✅ Scroll to top when component mounts
+  // Scroll to top when component mounts
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
 
-  // ✅ Form validation
- 
   const validateForm = () => {
     if (!formData.email.trim()) {
       toast.error("Email is required");
@@ -42,12 +40,30 @@ const LoginPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // ✅ Scroll to top on form submission
+    // Scroll to top on form submission
     window.scrollTo({ top: 0, behavior: "smooth" });
 
     if (!validateForm()) return;
 
-    await login(formData);
+    try {
+      await login(formData);
+      navigate("/");
+    } catch (err) {
+      // Error is handled by useAuthStore
+    }
+  };
+
+  const handleGoogleSuccess = async (credentialResponse) => {
+    try {
+      await googleLogin(credentialResponse.credential);
+      navigate("/");
+    } catch (err) {
+      // Error is handled by useAuthStore
+    }
+  };
+
+  const handleGoogleError = () => {
+    toast.error("Google login failed. Please try again.");
   };
 
   return (
@@ -63,21 +79,40 @@ const LoginPage = () => {
             <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
               {/* Left Side - Login Form */}
               <div className="flex flex-col justify-center max-w-md mx-auto w-full">
-                <form onSubmit={handleSubmit} className="space-y-5">
-                  <div className="text-center mb-8">
-                    <div className="flex flex-col items-center gap-4">
-                      <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center border border-[#605dff]/30">
-                        <MessageSquare className="w-8 h-8 text-[#605dff]" />
-                      </div>
-                      <h1 className="text-4xl font-bold text-white">
-                        Welcome Back
-                      </h1>
-                      <p className="text-gray-400 text-base">
-                        Sign in to your account
-                      </p>
+                <div className="text-center mb-8">
+                  <div className="flex flex-col items-center gap-4">
+                    <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center border border-[#605dff]/30">
+                      <MessageSquare className="w-8 h-8 text-[#605dff]" />
+                    </div>
+                    <h1 className="text-4xl font-bold text-white">
+                      Welcome Back
+                    </h1>
+                    <p className="text-gray-400 text-base">
+                      Sign in to your account
+                    </p>
+                  </div>
+                </div>
+
+                {/* Google Sign-In */}
+                <div className="space-y-4 mb-5">
+                  <GoogleLogin
+                    onSuccess={handleGoogleSuccess}
+                    onError={handleGoogleError}
+                    theme="filled_black"
+                    size="large"
+                    width="100%"
+                  />
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                      <div className="w-full border-t border-gray-700"></div>
+                    </div>
+                    <div className="relative flex justify-center text-sm">
+                      <span className="px-2 bg-[#0f1419] text-gray-400">or</span>
                     </div>
                   </div>
+                </div>
 
+                <form onSubmit={handleSubmit} className="space-y-5">
                   {/* Email */}
                   <div className="relative">
                     <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 w-5 h-5 z-10" />
@@ -158,7 +193,7 @@ const LoginPage = () => {
 
                 <div className="text-center mt-6">
                   <p className="text-gray-400 text-sm">
-                    Don’t have an account?{" "}
+                    Don't have an account?{" "}
                     <Link
                       to="/signup"
                       className="text-[#605dff] hover:text-[#6663ffc9] font-medium hover:underline"
