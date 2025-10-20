@@ -8,6 +8,7 @@ import MessageReactions from "./MessageReactions";
 import MessageActions from "./MessageActions";
 import { useAuthStore } from "../store/useAuthStore";
 import { formatMessageTime, formatMessageDate, shouldShowDateSeparator } from "../lib/utils";
+import { VoicePlayer } from "./VoiceMessage";
 import "./Chat.css";
 
 const ChatContainer = ({showSidebar, setShowSidebar}) => {
@@ -128,6 +129,17 @@ const ChatContainer = ({showSidebar, setShowSidebar}) => {
                             />
                           )}
                           {message.text && <p>{message.text}</p>}
+                          {message.voiceMessage && (
+                            <>
+                              <VoicePlayer 
+                                url={message.voiceMessage} 
+                                duration={message.voiceDuration || 0} 
+                                waveform={message.voiceWaveform || []} 
+                              />
+                              {/* For debugging */}
+                              {console.log('Rendering voice message:', message.voiceMessage)}
+                            </>
+                          )}
                         </div>
                         
                         <div className="message-actions">

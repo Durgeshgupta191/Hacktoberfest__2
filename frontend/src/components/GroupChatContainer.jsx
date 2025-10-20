@@ -6,6 +6,7 @@ import MessageInput from "./MessageInput";
 import MessageSkeleton from "./skeletons/MessageSkeleton";
 import { formatMessageTime } from "../lib/utils";
 import MessageReactions from "./MessageReactions";
+import { VoicePlayer } from "./VoiceMessage";
 import "./Chat.css";
 
 const GroupChatContainer = ({ showSidebar, setShowSidebar }) => {
@@ -323,6 +324,13 @@ const GroupChatContainer = ({ showSidebar, setShowSidebar }) => {
                       />
                     )}
                     {msg.text && <p>{msg.text}</p>}
+                    {msg.voiceMessage && (
+                      <VoicePlayer 
+                        url={msg.voiceMessage} 
+                        duration={msg.voiceDuration} 
+                        waveform={msg.voiceWaveform} 
+                      />
+                    )}
                   </div>
                   
                   {/* Reactions */}

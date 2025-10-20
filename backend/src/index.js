@@ -9,6 +9,14 @@ import cookieParser from "cookie-parser";
 import { connectDB } from "./lib/db.js";
 import cors from "cors";
 import { app, server } from "./lib/socket.js";
+import groupRoutes from "./routes/group.route.js"
+import groupMessageRoutes from "./routes/groupMessage.js"
+import voiceRoutes from "./routes/voice.route.js"
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+
+dotenv.config();
 
 connectDB();
 const PORT = process.env.PORT || 5000;
@@ -41,10 +49,20 @@ app.use(
   })
 );
 
+// Create temp directory if it doesn't exist
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const tempDir = path.join(__dirname, "../temp");
+
+// Create temp directory for temporary file uploads
+if (!fs.existsSync(tempDir)) {
+  fs.mkdirSync(tempDir, { recursive: true });
+}
+
 app.use("/api/auth", authRoutes);
 app.use("/api/messages", messageRoutes);
 app.use("/api/groups", groupRoutes);
 app.use("/api/group-messages", groupMessageRoutes);
+app.use("/api/voice-messages", voiceRoutes);
 
 app.get("/", (req, res) => {
   res.send({
