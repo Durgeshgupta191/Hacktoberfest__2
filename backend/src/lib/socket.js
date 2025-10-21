@@ -2,6 +2,7 @@ import { Server } from 'socket.io';
 import http from 'http';
 import express from 'express';
 import User from '../models/user.model.js';
+import Message from '../models/message.model.js';
 
 const app = express();
 const server = http.createServer(app);
@@ -25,7 +26,11 @@ const typingUsers = {}; // {userId: receiverId}
 
 io.on('connection', (socket) => {
   console.log('A user connected', socket.id);
-  const userId = socket.handshake.query.userId;
+  let userId = socket.handshake.query.userId;
+  if (typeof userId === 'string') {
+    const u = userId.trim();
+    if (u === '' || u === 'undefined' || u === 'null') userId = undefined;
+  }
   if (userId) userSocketMap[userId] = socket.id;
 
   io.emit('getOnlineUsers', Object.keys(userSocketMap));
@@ -99,7 +104,11 @@ io.on('connection', (socket) => {
 
     // Update last seen
     if (userId) {
-      await User.findByIdAndUpdate(userId, { lastSeen: new Date() });
+      try {
+        await User.findByIdAndUpdate(userId, { lastSeen: new Date() });
+      } catch (err) {
+        console.warn('Failed to update lastSeen for user:', userId, err.message);
+      }
     }
 
     // Clean up typing status
@@ -110,6 +119,55 @@ io.on('connection', (socket) => {
       if (receiverSocketId) {
         io.to(receiverSocketId).emit('userStopTyping', { userId });
       }
+    }
+  });
+
+  // Message receipt events from clients
+  // Client emits 'messageDelivered' when it receives a new message (socket connected)
+  // payload: { messageId }
+  socket.on('messageDelivered', async ({ messageId }) => {
+    try {
+      if (!messageId) return;
+      const msg = await Message.findById(messageId);
+      if (!msg) return;
+      // only update if not already delivered
+      if (!msg.delivered) {
+        msg.delivered = true;
+        msg.deliveredAt = new Date();
+        await msg.save();
+
+        // notify sender
+        const senderSocketId = getReceiverSocketId(msg.senderId.toString());
+        if (senderSocketId) {
+          io.to(senderSocketId).emit('messageDelivered', { _id: messageId, delivered: true, deliveredAt: msg.deliveredAt });
+        }
+      }
+    } catch (err) {
+      console.warn('Error handling messageDelivered:', err.message);
+    }
+  });
+
+  // Client emits 'messageRead' when the user opens/reads a message
+  // payload: { messageId }
+  socket.on('messageRead', async ({ messageId }) => {
+    try {
+      if (!messageId) return;
+      const msg = await Message.findById(messageId);
+      if (!msg) return;
+      // update read status
+      if (!msg.read) {
+        msg.read = true;
+        msg.readAt = new Date();
+        await msg.save();
+
+        // notify sender
+        const senderSocketId = getReceiverSocketId(msg.senderId.toString());
+        if (senderSocketId) {
+          io.to(senderSocketId).emit('messageRead', { _id: messageId, read: true, readAt: msg.readAt });
+        }
+      }
+    } catch (err) {
+      console.warn('Error handling messageRead:', err.message);
     }
   });
 });

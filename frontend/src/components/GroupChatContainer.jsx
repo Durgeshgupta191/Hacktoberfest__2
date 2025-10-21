@@ -302,7 +302,44 @@ const GroupChatContainer = ({ showSidebar, setShowSidebar }) => {
                     <span className="font-semibold">
                       {isOwnMessage ? 'You' : msg.senderId.fullName}
                     </span>
-                    <time className="ml-2">{formatMessageTime(msg.createdAt)}</time>
+                    <time className="ml-2">
+                      {formatMessageTime(msg.createdAt)}
+                      {isOwnMessage && (
+                        <span className="message-status" aria-hidden>
+                          {(() => {
+                            if (msg.read) {
+                              return (
+                                <>
+                                  <svg className="tick read" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M1 13l4 4L11 7" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                                  </svg>
+                                  <svg className="tick read" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M9 13l4 4L21 7" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                                  </svg>
+                                </>
+                              );
+                            }
+                            if (msg.delivered) {
+                              return (
+                                <>
+                                  <svg className="tick" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M1 13l4 4L11 7" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                                  </svg>
+                                  <svg className="tick" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M9 13l4 4L21 7" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                                  </svg>
+                                </>
+                              );
+                            }
+                            return (
+                              <svg className="tick" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M1 13l4 4L11 7" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                              </svg>
+                            );
+                          })()}
+                        </span>
+                      )}
+                    </time>
                   </div>
 
                   {/* Message bubble */}

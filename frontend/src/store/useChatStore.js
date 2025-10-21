@@ -167,6 +167,17 @@ export const useChatStore = create((set, get) => ({
       );
 
       set({ messages: decryptedMessages });
+
+      // WhatsApp-like: emit 'messageRead' for all unread messages that are visible in the chat
+      const currentUser = useAuthStore.getState().authUser;
+      const s = useAuthStore.getState().socket;
+      if (s && s.connected && currentUser) {
+        decryptedMessages.forEach((msg) => {
+          if (!msg.groupId && msg.receiverId === currentUser._id && !msg.read) {
+            s.emit('messageRead', { messageId: msg._id });
+          }
+        });
+      }
     } catch (error) {
       toast.error(getErrorMessage(error, 'Failed to fetch messages'));
     } finally {
@@ -217,16 +228,48 @@ export const useChatStore = create((set, get) => ({
       }
 
       // If the message is for the currently open chat, just append it; otherwise notify
+      const appendMessage = () => set({ messages: [...get().messages, newMessage] });
+
       if (selectedUser && newMessage.senderId === selectedUser._id) {
-        set({ messages: [...get().messages, newMessage] });
+        appendMessage();
+        // Immediately emit read receipt for messages that become visible
+        try {
+          if (!newMessage.groupId && currentUser && newMessage.receiverId === currentUser._id) {
+            const s = useAuthStore.getState().socket;
+            if (s && s.connected) s.emit('messageRead', { messageId: newMessage._id });
+          }
+        } catch (err) {
+          console.warn('Failed to emit messageRead:', err);
+        }
       } else {
         // append to messages list (so unread count can use it) and notify
-        set({ messages: [...get().messages, newMessage] });
+        appendMessage();
         // don't notify about our own messages
         if (currentUser && newMessage.senderId !== currentUser._id) {
           get().notifyNewMessage(newMessage, { isGroup: false });
         }
+        // Emit delivery acknowledgement back to server so sender receives single/double ticks
+        try {
+          if (!newMessage.groupId && currentUser && newMessage.receiverId === currentUser._id) {
+            const s = useAuthStore.getState().socket;
+            if (s && s.connected) s.emit('messageDelivered', { messageId: newMessage._id });
+          }
+        } catch (err) {
+          console.warn('Failed to emit messageDelivered:', err);
+        }
       }
+    });
+
+    // Update message delivery status (sender receives this)
+    socket.on('messageDelivered', ({ _id, delivered, deliveredAt }) => {
+      set({ messages: get().messages.map((m) => (m._id === _id ? { ...m, delivered, deliveredAt } : m)) });
+      set({ groupMessages: get().groupMessages.map((m) => (m._id === _id ? { ...m, delivered, deliveredAt } : m)) });
+    });
+
+    // Update message read status (sender receives this)
+    socket.on('messageRead', ({ _id, read, readAt }) => {
+      set({ messages: get().messages.map((m) => (m._id === _id ? { ...m, read, readAt } : m)) });
+      set({ groupMessages: get().groupMessages.map((m) => (m._id === _id ? { ...m, read, readAt } : m)) });
     });
 
     socket.on('messageUpdated', (updated) => {
