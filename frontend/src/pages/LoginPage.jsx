@@ -193,7 +193,7 @@ const LoginPage = () => {
               </div>
 
               {/* Right Side - Image */}
-              <div className="hidden lg:flex flex-col justify-center border-l border-gray-700 pl-12 mt-9">
+              <div className="hidden lg:flex flex-col justify-center border-l border-gray-700 pl-30 mt-9">
                 <AuthImagePattern
                   title="Welcome Back!"
                   subtitle="Sign in to continue your conversations and catch up with your messages."
