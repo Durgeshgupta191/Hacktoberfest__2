@@ -1,12 +1,5 @@
-import {
-  MessageSquare,
-  Github,
-  Twitter,
-  Linkedin,
-  Mail,
-  Heart,
-} from "lucide-react";
-import { Link } from "react-router-dom";
+import { MessageSquare, Github, Twitter, Linkedin, Mail, Heart } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const Footer = () => {
   const currentYear = new Date().getFullYear();
@@ -24,8 +17,8 @@ const Footer = () => {
               <span className="text-xl font-bold text-white">Chatty</span>
             </div>
             <p className="text-gray-400 text-sm mb-4 max-w-md">
-              Connect with friends and family through secure, real-time
-              messaging. Share moments, stay connected, and chat effortlessly.
+              Connect with friends and family through secure, real-time messaging. Share moments,
+              stay connected, and chat effortlessly.
             </p>
             <div className="flex gap-4">
               <a
@@ -147,9 +140,7 @@ const Footer = () => {
               © {currentYear} Chatty. All rights reserved.
             </p>
             <p className="text-gray-400 text-sm flex items-center gap-1">
-              Made with{" "}
-              <Heart className="w-4 h-4 text-blue-500 fill-blue-500" /> by
-              Pritam
+              Made with <Heart className="w-4 h-4 text-blue-500 fill-blue-500" /> by Pritam
             </p>
           </div>
         </div>

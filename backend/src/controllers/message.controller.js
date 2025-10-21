@@ -1,198 +1,193 @@
-import User from "../models/user.model.js"
-import Message from "../models/message.model.js"
-import cloudinary from "../lib/cloudinary.js"
-import {getReceiverSocketId, io} from "../lib/socket.js"
-import { generateEncryptionKey, encryptMessage, decryptMessage, encryptWithPublicKey } from "../lib/encryption.js"
+import User from '../models/user.model.js';
+import Message from '../models/message.model.js';
+import cloudinary from '../lib/cloudinary.js';
+import { getReceiverSocketId, io } from '../lib/socket.js';
+import {
+  generateEncryptionKey,
+  encryptMessage,
+  decryptMessage,
+  encryptWithPublicKey,
+} from '../lib/encryption.js';
 
-export const getUsersForSidebar = async(req,res) =>{
-    try{
-        const loggedInUserId = req.user._id;
-        const { q } = req.query;
-        const baseFilter = { _id: { $ne: loggedInUserId } };
+export const getUsersForSidebar = async (req, res) => {
+  try {
+    const loggedInUserId = req.user._id;
+    const { q } = req.query;
+    const baseFilter = { _id: { $ne: loggedInUserId } };
 
-        const nameFilter = q
-            ? { fullName: { $regex: q, $options: "i" } } // case-insensitive search
-            : {};
+    const nameFilter = q
+      ? { fullName: { $regex: q, $options: 'i' } } // case-insensitive search
+      : {};
 
-        const filteredUsers = await User.find({
-            ...baseFilter,
-            ...nameFilter,
-        }).select("-password -privateKey -lastSeen");
-        res.status(200).json(filteredUsers)
-    } catch(error){
-        console.log("Error in getUsersForSidebar: ",error.message);
-        res.status(500).json({error: "Internal server error"});
-    }
+    const filteredUsers = await User.find({
+      ...baseFilter,
+      ...nameFilter,
+    }).select('-password -privateKey -lastSeen');
+    res.status(200).json(filteredUsers);
+  } catch (error) {
+    console.log('Error in getUsersForSidebar: ', error.message);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 };
 
-export const getMessages = async(req,res) =>{
-    try{
-        const {id:userToChatId} = req.params; // destructure + rename
-        const myId = req.user._id;
-        const messages = await Message.find({
-            $or:[
-                {senderId:myId, receiverId:userToChatId},
-                {senderId:userToChatId, receiverId:myId},
-            ]
-        })
-        res.status(200).json(messages)
+export const getMessages = async (req, res) => {
+  try {
+    const { id: userToChatId } = req.params; // destructure + rename
+    const myId = req.user._id;
+    const messages = await Message.find({
+      $or: [
+        { senderId: myId, receiverId: userToChatId },
+        { senderId: userToChatId, receiverId: myId },
+      ],
+    });
+    res.status(200).json(messages);
+  } catch (error) {
+    console.log('Error in getMessages controller: ', error.message);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
 
-    } catch(error){
-        console.log("Error in getMessages controller: ",error.message);
-        res.status(500).json({error: "Internal server error"});
+export const sendMessage = async (req, res) => {
+  try {
+    const { text, image, encryptedText, isEncrypted } = req.body;
+    const { id: receiverId } = req.params;
+    const senderId = req.user._id;
+    let imageUrl;
+
+    if (image) {
+      // ===== GIF HANDLING START =====
+      // Check if image is a GIF URL (from Giphy) or base64 image data
+      if (image.startsWith('http://') || image.startsWith('https://')) {
+        // It's a GIF URL from Giphy, use it directly
+        imageUrl = image;
+      } else {
+        // It's a base64 image, upload to Cloudinary
+        const uploadResponse = await cloudinary.uploader.upload(image);
+        imageUrl = uploadResponse.secure_url;
+      }
+      // ===== GIF HANDLING END =====
     }
-}
 
-export const sendMessage = async(req,res) =>{
-    try{
-        const {text, image, encryptedText, isEncrypted} = req.body;
-        const {id: receiverId} = req.params;
-        const senderId = req.user._id;
-        let imageUrl;
-        
-        if(image){
-            // ===== GIF HANDLING START =====
-            // Check if image is a GIF URL (from Giphy) or base64 image data
-            if(image.startsWith('http://') || image.startsWith('https://')){
-                // It's a GIF URL from Giphy, use it directly
-                imageUrl = image;
-            } else {
-                // It's a base64 image, upload to Cloudinary
-                const uploadResponse = await cloudinary.uploader.upload(image);
-                imageUrl = uploadResponse.secure_url;
-            }
-            // ===== GIF HANDLING END =====
-        }
+    // Check blocking: if receiver has blocked sender or sender has blocked receiver, reject
+    const receiver = await User.findById(receiverId).select('blockedUsers');
+    const sender = await User.findById(senderId).select('blockedUsers');
+    if (!receiver || !sender) return res.status(404).json({ error: 'User not found' });
 
-  // Check blocking: if receiver has blocked sender or sender has blocked receiver, reject
-  const receiver = await User.findById(receiverId).select('blockedUsers');
-  const sender = await User.findById(senderId).select('blockedUsers');
-  if (!receiver || !sender) return res.status(404).json({ error: 'User not found' });
-
-  // If receiver blocked sender, sender cannot send messages to receiver
-  if (receiver.blockedUsers && receiver.blockedUsers.map(String).includes(senderId.toString())) {
+    // If receiver blocked sender, sender cannot send messages to receiver
+    if (receiver.blockedUsers && receiver.blockedUsers.map(String).includes(senderId.toString())) {
       return res.status(403).json({ error: 'You are blocked by this user' });
-  }
+    }
 
-  // If sender has blocked receiver, prevent sending (optional UX: disallow)
-  if (sender.blockedUsers && sender.blockedUsers.map(String).includes(receiverId.toString())) {
+    // If sender has blocked receiver, prevent sending (optional UX: disallow)
+    if (sender.blockedUsers && sender.blockedUsers.map(String).includes(receiverId.toString())) {
       return res.status(400).json({ error: 'You have blocked this user' });
+    }
+
+    const newMessage = new Message({
+      senderId,
+      receiverId,
+      text: isEncrypted ? null : text, // Store plain text only if not encrypted
+      encryptedText: isEncrypted ? encryptedText : null,
+      isEncrypted: isEncrypted || false,
+      image: imageUrl,
+    });
+
+    await newMessage.save();
+    const receiverSocketId = getReceiverSocketId(receiverId);
+    if (receiverSocketId) {
+      io.to(receiverSocketId).emit('newMessage', newMessage);
+    }
+
+    res.status(201).json(newMessage);
+  } catch (error) {
+    console.log('Error in sendMessage controller: ', error.message);
+    res.status(500).json({ error: 'Internal server error' });
   }
-
-  const newMessage = new Message({
-            senderId,
-            receiverId,
-            text: isEncrypted ? null : text, // Store plain text only if not encrypted
-            encryptedText: isEncrypted ? encryptedText : null,
-            isEncrypted: isEncrypted || false,
-            image: imageUrl,
-        })
-
-        await newMessage.save();
-        const receiverSocketId = getReceiverSocketId(receiverId)
-        if(receiverSocketId){
-            io.to(receiverSocketId).emit("newMessage",newMessage);
-        }
-
-        res.status(201).json(newMessage)
-
-    } catch(error){
-        console.log("Error in sendMessage controller: ",error.message);
-        res.status(500).json({error: "Internal server error"});
-    }
-}
-
-export const getUserPublicKey = async(req,res) =>{
-    try{
-        const {id: userId} = req.params;
-        const user = await User.findById(userId).select("publicKey");
-        if(!user){
-            return res.status(404).json({error: "User not found"});
-        }
-        res.status(200).json({publicKey: user.publicKey});
-    } catch(error){
-        console.log("Error in getUserPublicKey: ",error.message);
-        res.status(500).json({error: "Internal server error"});
-    }
-}
-
-export const getMyPrivateKey = async(req,res) =>{
-    try{
-        const userId = req.user._id;
-        const user = await User.findById(userId).select("privateKey");
-        if(!user){
-            return res.status(404).json({error: "User not found"});
-        }
-        res.status(200).json({privateKey: user.privateKey});
-    } catch(error){
-        console.log("Error in getMyPrivateKey: ",error.message);
-        res.status(500).json({error: "Internal server error"});
-    }
-}
-
-export const pinChat = async(req, res) => {
-    try {
-        const { id: userToPinId } = req.params;
-        const userId = req.user._id;
-
-        // Check if user exists
-        const userToPin = await User.findById(userToPinId);
-        if (!userToPin) {
-            return res.status(404).json({ error: "User not found" });
-        }
-
-        // Check if chat is already pinned
-        const user = await User.findById(userId);
-        if (user.pinnedChats.includes(userToPinId)) {
-            return res.status(400).json({ error: "Chat is already pinned" });
-        }
-
-        // Add to pinned chats
-        await User.findByIdAndUpdate(
-            userId,
-            { $push: { pinnedChats: userToPinId } },
-            { new: true }
-        );
-
-        res.status(200).json({ message: "Chat pinned successfully" });
-    } catch (error) {
-        console.log("Error in pinChat controller: ", error.message);
-        res.status(500).json({ error: "Internal server error" });
-    }
 };
 
-export const unpinChat = async(req, res) => {
-    try {
-        const { id: userToUnpinId } = req.params;
-        const userId = req.user._id;
-
-        // Remove from pinned chats
-        await User.findByIdAndUpdate(
-            userId,
-            { $pull: { pinnedChats: userToUnpinId } },
-            { new: true }
-        );
-
-        res.status(200).json({ message: "Chat unpinned successfully" });
-    } catch (error) {
-        console.log("Error in unpinChat controller: ", error.message);
-        res.status(500).json({ error: "Internal server error" });
+export const getUserPublicKey = async (req, res) => {
+  try {
+    const { id: userId } = req.params;
+    const user = await User.findById(userId).select('publicKey');
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
     }
+    res.status(200).json({ publicKey: user.publicKey });
+  } catch (error) {
+    console.log('Error in getUserPublicKey: ', error.message);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 };
 
-export const getPinnedChats = async(req, res) => {
-    try {
-        const userId = req.user._id;
-        
-        const user = await User.findById(userId)
-            .populate('pinnedChats', '-password -privateKey -lastSeen')
-            .select('pinnedChats');
-        
-        res.status(200).json(user.pinnedChats || []);
-    } catch (error) {
-        console.log("Error in getPinnedChats controller: ", error.message);
-        res.status(500).json({ error: "Internal server error" });
+export const getMyPrivateKey = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const user = await User.findById(userId).select('privateKey');
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
     }
+    res.status(200).json({ privateKey: user.privateKey });
+  } catch (error) {
+    console.log('Error in getMyPrivateKey: ', error.message);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+export const pinChat = async (req, res) => {
+  try {
+    const { id: userToPinId } = req.params;
+    const userId = req.user._id;
+
+    // Check if user exists
+    const userToPin = await User.findById(userToPinId);
+    if (!userToPin) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Check if chat is already pinned
+    const user = await User.findById(userId);
+    if (user.pinnedChats.includes(userToPinId)) {
+      return res.status(400).json({ error: 'Chat is already pinned' });
+    }
+
+    // Add to pinned chats
+    await User.findByIdAndUpdate(userId, { $push: { pinnedChats: userToPinId } }, { new: true });
+
+    res.status(200).json({ message: 'Chat pinned successfully' });
+  } catch (error) {
+    console.log('Error in pinChat controller: ', error.message);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+export const unpinChat = async (req, res) => {
+  try {
+    const { id: userToUnpinId } = req.params;
+    const userId = req.user._id;
+
+    // Remove from pinned chats
+    await User.findByIdAndUpdate(userId, { $pull: { pinnedChats: userToUnpinId } }, { new: true });
+
+    res.status(200).json({ message: 'Chat unpinned successfully' });
+  } catch (error) {
+    console.log('Error in unpinChat controller: ', error.message);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+export const getPinnedChats = async (req, res) => {
+  try {
+    const userId = req.user._id;
+
+    const user = await User.findById(userId)
+      .populate('pinnedChats', '-password -privateKey -lastSeen')
+      .select('pinnedChats');
+
+    res.status(200).json(user.pinnedChats || []);
+  } catch (error) {
+    console.log('Error in getPinnedChats controller: ', error.message);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 };
 
 // POST /messages/archive/:id
@@ -202,22 +197,18 @@ export const archiveChat = async (req, res) => {
     const userId = req.user._id;
 
     const user = await User.findById(userId);
-    if (!user) return res.status(404).json({ error: "User not found" });
+    if (!user) return res.status(404).json({ error: 'User not found' });
 
     if (user.archivedChats?.includes(chatUserId)) {
-      return res.status(400).json({ error: "Chat is already archived" });
+      return res.status(400).json({ error: 'Chat is already archived' });
     }
 
-    await User.findByIdAndUpdate(
-      userId,
-      { $push: { archivedChats: chatUserId } },
-      { new: true }
-    );
+    await User.findByIdAndUpdate(userId, { $push: { archivedChats: chatUserId } }, { new: true });
 
-    res.status(200).json({ message: "Chat archived successfully" });
+    res.status(200).json({ message: 'Chat archived successfully' });
   } catch (error) {
-    console.log("Error in archiveChat:", error.message);
-    res.status(500).json({ error: "Internal server error" });
+    console.log('Error in archiveChat:', error.message);
+    res.status(500).json({ error: 'Internal server error' });
   }
 };
 
@@ -227,16 +218,12 @@ export const unarchiveChat = async (req, res) => {
     const { id: chatUserId } = req.params;
     const userId = req.user._id;
 
-    await User.findByIdAndUpdate(
-      userId,
-      { $pull: { archivedChats: chatUserId } },
-      { new: true }
-    );
+    await User.findByIdAndUpdate(userId, { $pull: { archivedChats: chatUserId } }, { new: true });
 
-    res.status(200).json({ message: "Chat unarchived successfully" });
+    res.status(200).json({ message: 'Chat unarchived successfully' });
   } catch (error) {
-    console.log("Error in unarchiveChat:", error.message);
-    res.status(500).json({ error: "Internal server error" });
+    console.log('Error in unarchiveChat:', error.message);
+    res.status(500).json({ error: 'Internal server error' });
   }
 };
 
@@ -245,13 +232,13 @@ export const getArchivedChats = async (req, res) => {
   try {
     const userId = req.user._id;
     const user = await User.findById(userId)
-      .populate("archivedChats", "-password -privateKey -lastSeen")
-      .select("archivedChats");
+      .populate('archivedChats', '-password -privateKey -lastSeen')
+      .select('archivedChats');
 
     res.status(200).json(user.archivedChats || []);
   } catch (error) {
-    console.log("Error in getArchivedChats:", error.message);
-    res.status(500).json({ error: "Internal server error" });
+    console.log('Error in getArchivedChats:', error.message);
+    res.status(500).json({ error: 'Internal server error' });
   }
 };
 
@@ -263,25 +250,25 @@ export const editMessage = async (req, res) => {
     const userId = req.user._id.toString();
 
     if (!text || !text.trim()) {
-      return res.status(400).json({ error: "Text is required" });
+      return res.status(400).json({ error: 'Text is required' });
     }
 
     const message = await Message.findById(messageId);
-    if (!message) return res.status(404).json({ error: "Message not found" });
+    if (!message) return res.status(404).json({ error: 'Message not found' });
 
     if (message.senderId.toString() !== userId) {
-      return res.status(403).json({ error: "Not allowed" });
+      return res.status(403).json({ error: 'Not allowed' });
     }
 
     // Only allow editing non-encrypted text messages
     if (message.isEncrypted || !message.text) {
-      return res.status(400).json({ error: "Only plain text messages can be edited" });
+      return res.status(400).json({ error: 'Only plain text messages can be edited' });
     }
 
     // Within 2 minutes
     const twoMinutesMs = 2 * 60 * 1000;
     if (Date.now() - new Date(message.createdAt).getTime() > twoMinutesMs) {
-      return res.status(400).json({ error: "Edit window expired" });
+      return res.status(400).json({ error: 'Edit window expired' });
     }
 
     // Must be last message sent by me in this conversation
@@ -293,7 +280,7 @@ export const editMessage = async (req, res) => {
       .limit(1);
 
     if (!lastMyMsg || lastMyMsg._id.toString() !== messageId) {
-      return res.status(400).json({ error: "Only the last message can be edited" });
+      return res.status(400).json({ error: 'Only the last message can be edited' });
     }
 
     message.text = text.trim();
@@ -301,13 +288,13 @@ export const editMessage = async (req, res) => {
 
     const receiverSocketId = getReceiverSocketId(message.receiverId.toString());
     if (receiverSocketId) {
-      io.to(receiverSocketId).emit("messageUpdated", message);
+      io.to(receiverSocketId).emit('messageUpdated', message);
     }
 
     res.status(200).json(message);
   } catch (error) {
-    console.log("Error in editMessage:", error.message);
-    res.status(500).json({ error: "Internal server error" });
+    console.log('Error in editMessage:', error.message);
+    res.status(500).json({ error: 'Internal server error' });
   }
 };
 
@@ -318,16 +305,16 @@ export const deleteMessage = async (req, res) => {
     const userId = req.user._id.toString();
 
     const message = await Message.findById(messageId);
-    if (!message) return res.status(404).json({ error: "Message not found" });
+    if (!message) return res.status(404).json({ error: 'Message not found' });
 
     if (message.senderId.toString() !== userId) {
-      return res.status(403).json({ error: "Not allowed" });
+      return res.status(403).json({ error: 'Not allowed' });
     }
 
     // Within 2 minutes
     const twoMinutesMs = 2 * 60 * 1000;
     if (Date.now() - new Date(message.createdAt).getTime() > twoMinutesMs) {
-      return res.status(400).json({ error: "Delete window expired" });
+      return res.status(400).json({ error: 'Delete window expired' });
     }
 
     // Must be last message sent by me in this conversation
@@ -339,19 +326,19 @@ export const deleteMessage = async (req, res) => {
       .limit(1);
 
     if (!lastMyMsg || lastMyMsg._id.toString() !== messageId) {
-      return res.status(400).json({ error: "Only the last message can be deleted" });
+      return res.status(400).json({ error: 'Only the last message can be deleted' });
     }
 
     await Message.findByIdAndDelete(messageId);
 
     const receiverSocketId = getReceiverSocketId(message.receiverId.toString());
     if (receiverSocketId) {
-      io.to(receiverSocketId).emit("messageDeleted", { _id: messageId });
+      io.to(receiverSocketId).emit('messageDeleted', { _id: messageId });
     }
 
     res.status(200).json({ success: true });
   } catch (error) {
-    console.log("Error in deleteMessage:", error.message);
-    res.status(500).json({ error: "Internal server error" });
+    console.log('Error in deleteMessage:', error.message);
+    res.status(500).json({ error: 'Internal server error' });
   }
 };

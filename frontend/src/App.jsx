@@ -1,16 +1,16 @@
-import React, { useEffect } from "react";
-import Navbar from "./components/Navbar";
-import HomePage from "./pages/HomePage";
-import SignUpPage from "./pages/SignUpPage";
-import LoginPage from "./pages/LoginPage";
-import SettingsPage from "./pages/SettingsPage";
-import ProfilePage from "./pages/ProfilePage";
-import OTPVerificationPage from "./pages/OTPVerificationPage";
-import { Routes, Route, Navigate, useLocation } from "react-router-dom";
-import { useAuthStore } from "./store/useAuthStore.js";
-import { useThemeStore } from "./store/useThemeStore.js";
-import { Loader } from "lucide-react";
-import { AnimatePresence, motion } from "framer-motion";
+import React, { useEffect } from 'react';
+import Navbar from './components/Navbar';
+import HomePage from './pages/HomePage';
+import SignUpPage from './pages/SignUpPage';
+import LoginPage from './pages/LoginPage';
+import SettingsPage from './pages/SettingsPage';
+import ProfilePage from './pages/ProfilePage';
+import OTPVerificationPage from './pages/OTPVerificationPage';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { useAuthStore } from './store/useAuthStore.js';
+import { useThemeStore } from './store/useThemeStore.js';
+import { Loader } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
 
 const App = () => {
   const { authUser, checkAuth, isCheckingAuth } = useAuthStore();
@@ -33,7 +33,7 @@ const App = () => {
     initial: { opacity: 0 },
     animate: { opacity: 1 },
     exit: { opacity: 0 },
-    transition: { duration: 0.5, ease: "easeOut" },
+    transition: { duration: 0.5, ease: 'easeOut' },
   };
 
   return (

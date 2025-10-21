@@ -1,28 +1,31 @@
-import mongoose from "mongoose"
+import mongoose from 'mongoose';
 
 // Define the reaction schema as a subdocument
-const reactionSchema = new mongoose.Schema({
-  emoji: {
-    type: String,
-    required: true,
+const reactionSchema = new mongoose.Schema(
+  {
+    emoji: {
+      type: String,
+      required: true,
+    },
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
+    },
   },
-  userId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "User",
-    required: true,
-  },
-}, { _id: false });
+  { _id: false }
+);
 
 const messageSchema = new mongoose.Schema(
   {
     senderId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      ref: 'User',
       required: true,
     },
     receiverId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      ref: 'User',
       required: function () {
         return !this.groupId;
       },
@@ -30,7 +33,7 @@ const messageSchema = new mongoose.Schema(
 
     groupId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Group",
+      ref: 'Group',
       default: null,
     },
 
@@ -69,5 +72,5 @@ const messageSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-const Message = mongoose.model("Message",messageSchema);
+const Message = mongoose.model('Message', messageSchema);
 export default Message;

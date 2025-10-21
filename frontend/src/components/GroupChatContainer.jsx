@@ -1,13 +1,13 @@
-import { useEffect, useRef, useState } from "react";
-import { useChatStore } from "../store/useChatStore.js";
-import { useAuthStore } from "../store/useAuthStore.js";
-import ChatHeader from "./ChatHeader";
-import MessageInput from "./MessageInput";
-import MessageSkeleton from "./skeletons/MessageSkeleton";
-import { formatMessageTime } from "../lib/utils";
-import MessageReactions from "./MessageReactions";
-import { VoicePlayer } from "./VoiceMessage";
-import "./Chat.css";
+import { useEffect, useRef, useState } from 'react';
+import { useChatStore } from '../store/useChatStore.js';
+import { useAuthStore } from '../store/useAuthStore.js';
+import ChatHeader from './ChatHeader';
+import MessageInput from './MessageInput';
+import MessageSkeleton from './skeletons/MessageSkeleton';
+import { formatMessageTime } from '../lib/utils';
+import MessageReactions from './MessageReactions';
+import { VoicePlayer } from './VoiceMessage';
+import './Chat.css';
 
 const GroupChatContainer = ({ showSidebar, setShowSidebar }) => {
   const {
@@ -31,117 +31,110 @@ const GroupChatContainer = ({ showSidebar, setShowSidebar }) => {
 
   const { authUser } = useAuthStore();
   const messageEndRef = useRef(null);
-  const [showManageMembers,setShowManageMembers] = useState(false)
-  const [activeTab,setActiveTab] = useState("add")
-  const [memberIds,setMemberIds] = useState(new Set(selectedGroup.members.map(m => m._id)))
-  const [adminIds,setAdminIds] = useState(new Set(selectedGroup.admin.map(a => a)))
+  const [showManageMembers, setShowManageMembers] = useState(false);
+  const [activeTab, setActiveTab] = useState('add');
+  const [memberIds, setMemberIds] = useState(new Set(selectedGroup.members.map((m) => m._id)));
+  const [adminIds, setAdminIds] = useState(new Set(selectedGroup.admin.map((a) => a)));
 
   useEffect(() => {
     if (!selectedGroup?._id) return;
     getGroupMessages(selectedGroup._id);
     subscribeToGroupMessages(selectedGroup._id);
-    setAdminIds(new Set(selectedGroup.admin.map(a => a)))
-    setMemberIds(new Set(selectedGroup.members.map(m => m._id)))
+    setAdminIds(new Set(selectedGroup.admin.map((a) => a)));
+    setMemberIds(new Set(selectedGroup.members.map((m) => m._id)));
     return () => {
       unsubscribeFromGroupMessages(selectedGroup._id);
     };
   }, [selectedGroup?._id]);
 
   useEffect(() => {
-    messageEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    messageEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [groupMessages]);
 
   const handleAddMembers = async (userId) => {
     try {
       if (!userId) {
-        alert("Please select the user.");
+        alert('Please select the user.');
         return;
       }
       const data = await addGroupMembers(selectedGroup._id, userId);
       setMemberIds(new Set(data.members.map((m) => m)));
-      alert("Members added successfully!");
+      alert('Members added successfully!');
       await getGroups();
       const { groups } = useChatStore.getState();
-      const updatedGroup =
-        groups.find((g) => g._id === selectedGroup?._id) || null;
+      const updatedGroup = groups.find((g) => g._id === selectedGroup?._id) || null;
       setSelectedGroup(updatedGroup);
     } catch (error) {
-      console.error("Error adding members:", error);
-      alert("Failed to add members");
+      console.error('Error adding members:', error);
+      alert('Failed to add members');
     }
   };
 
   const handleRemoveMembers = async (userId) => {
     try {
       if (!userId) {
-        alert("Please select the user.");
+        alert('Please select the user.');
         return;
       }
       const data = await removeGroupMembers(selectedGroup._id, userId);
       setMemberIds(new Set(data.members.map((m) => m)));
-      alert("Members removed successfully!");
+      alert('Members removed successfully!');
       await getGroups();
       const { groups } = useChatStore.getState();
-      const updatedGroup =
-        groups.find((g) => g._id === selectedGroup?._id) || null;
+      const updatedGroup = groups.find((g) => g._id === selectedGroup?._id) || null;
       setSelectedGroup(updatedGroup);
     } catch (error) {
-      console.error("Error adding members:", error);
-      alert("Failed to add members");
+      console.error('Error adding members:', error);
+      alert('Failed to add members');
     }
   };
 
   const handleAddAdmin = async (userId) => {
     try {
       if (!userId) {
-        alert("Please select the user.");
+        alert('Please select the user.');
         return;
       }
       const data = await addGroupAdmin(selectedGroup._id, userId);
       setAdminIds(new Set(data.admin.map((a) => a)));
-      alert("Admin added successfully!");
+      alert('Admin added successfully!');
       await getGroups();
       const { groups } = useChatStore.getState();
-      const updatedGroup =
-        groups.find((g) => g._id === selectedGroup?._id) || null;
+      const updatedGroup = groups.find((g) => g._id === selectedGroup?._id) || null;
       setSelectedGroup(updatedGroup);
     } catch (error) {
-      console.error("Error adding admin:", error);
-      alert("Failed to add admin");
+      console.error('Error adding admin:', error);
+      alert('Failed to add admin');
     }
   };
 
   const handleRemoveAdmin = async (userId) => {
     try {
       if (!userId) {
-        alert("Please select the user.");
+        alert('Please select the user.');
         return;
       }
       const data = await removeGroupAdmin(selectedGroup._id, userId);
       setAdminIds(new Set(data.admin.map((a) => a)));
-      alert("Admin removed successfully!");
+      alert('Admin removed successfully!');
       await getGroups();
       const { groups } = useChatStore.getState();
-      const updatedGroup =
-        groups.find((g) => g._id === selectedGroup?._id) || null;
+      const updatedGroup = groups.find((g) => g._id === selectedGroup?._id) || null;
       setSelectedGroup(updatedGroup);
     } catch (error) {
-      console.error("Error adding admin:", error);
-      alert("Failed to add admin");
+      console.error('Error adding admin:', error);
+      alert('Failed to add admin');
     }
   };
   const nonMembers = users.filter((user) => !memberIds.has(user._id));
-  const memberUsers = users.filter(
-    (user) => !nonMembers.some((non) => non._id === user._id)
-  );
+  const memberUsers = users.filter((user) => !nonMembers.some((non) => non._id === user._id));
 
-  const isAdmin = selectedGroup.admin.includes(authUser._id)
+  const isAdmin = selectedGroup.admin.includes(authUser._id);
 
   if (isGroupMessagesLoading || isUsersLoading) {
     return (
       <div className="flex-1 flex flex-col overflow-auto">
-        <ChatHeader isGroup  showSidebar={showSidebar}
-          setShowSidebar={setShowSidebar} />
+        <ChatHeader isGroup showSidebar={showSidebar} setShowSidebar={setShowSidebar} />
         <MessageSkeleton />
         <MessageInput isGroup />
       </div>
@@ -150,9 +143,12 @@ const GroupChatContainer = ({ showSidebar, setShowSidebar }) => {
 
   return (
     <div className="flex-1 flex flex-col overflow-auto">
-      <ChatHeader isGroup groupName={selectedGroup?.name}  
+      <ChatHeader
+        isGroup
+        groupName={selectedGroup?.name}
         showSidebar={showSidebar}
-        setShowSidebar={setShowSidebar}/>
+        setShowSidebar={setShowSidebar}
+      />
 
       {isAdmin ? (
         <div className="flex items-center justify-end gap-2 mt-3">
@@ -184,38 +180,38 @@ const GroupChatContainer = ({ showSidebar, setShowSidebar }) => {
             <div className="flex gap-2 mb-4 border-b pb-2">
               <button
                 className={`flex-1 py-1 text-sm font-medium border-b-2 ${
-                  activeTab === "add"
-                    ? "border-blue-500 text-blue-600"
-                    : "border-transparent text-gray-500"
+                  activeTab === 'add'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500'
                 }`}
-                onClick={() => setActiveTab("add")}
+                onClick={() => setActiveTab('add')}
               >
                 Add
               </button>
               <button
                 className={`flex-1 py-1 text-sm font-medium border-b-2 ${
-                  activeTab === "remove"
-                    ? "border-red-500 text-red-600"
-                    : "border-transparent text-gray-500"
+                  activeTab === 'remove'
+                    ? 'border-red-500 text-red-600'
+                    : 'border-transparent text-gray-500'
                 }`}
-                onClick={() => setActiveTab("remove")}
+                onClick={() => setActiveTab('remove')}
               >
                 Remove
               </button>
               <button
                 className={`flex-1 py-1 text-sm font-medium border-b-2 ${
-                  activeTab === "admin"
-                    ? "border-green-500 text-green-600"
-                    : "border-transparent text-gray-500"
+                  activeTab === 'admin'
+                    ? 'border-green-500 text-green-600'
+                    : 'border-transparent text-gray-500'
                 }`}
-                onClick={() => setActiveTab("admin")}
+                onClick={() => setActiveTab('admin')}
               >
                 Manage Admins
               </button>
             </div>
 
             <div className="max-h-56 overflow-y-auto flex flex-col gap-2">
-              {activeTab === "add" &&
+              {activeTab === 'add' &&
                 (nonMembers.length > 0 ? (
                   nonMembers.map((user) => (
                     <div
@@ -234,7 +230,7 @@ const GroupChatContainer = ({ showSidebar, setShowSidebar }) => {
                 ) : (
                   <div>All contacts are added</div>
                 ))}
-              {activeTab === "remove" &&
+              {activeTab === 'remove' &&
                 memberUsers.map((user) => (
                   <div
                     key={user._id}
@@ -250,7 +246,7 @@ const GroupChatContainer = ({ showSidebar, setShowSidebar }) => {
                   </div>
                 ))}
 
-              {activeTab === "admin" &&
+              {activeTab === 'admin' &&
                 memberUsers.map((user) => (
                   <div
                     key={user._id}
@@ -290,65 +286,52 @@ const GroupChatContainer = ({ showSidebar, setShowSidebar }) => {
           const isOwnMessage = msg.senderId._id === authUser._id;
           return (
             <div key={msg._id} className="message-container">
-              <div className={`flex ${isOwnMessage ? "message-right" : "message-left"}`}>
+              <div className={`flex ${isOwnMessage ? 'message-right' : 'message-left'}`}>
                 {/* Profile picture */}
                 {!isOwnMessage && (
                   <div className="avatar-container">
                     <div className="avatar-image">
-                      <img
-                        src={msg.senderId.profilePic || "/avatar.png"}
-                        alt="user"
-                      />
+                      <img src={msg.senderId.profilePic || '/avatar.png'} alt="user" />
                     </div>
                   </div>
                 )}
-                
+
                 <div className="message-content">
                   {/* Message header with name and time */}
                   <div className="message-header">
                     <span className="font-semibold">
-                      {isOwnMessage ? "You" : msg.senderId.fullName}
+                      {isOwnMessage ? 'You' : msg.senderId.fullName}
                     </span>
-                    <time className="ml-2">
-                      {formatMessageTime(msg.createdAt)}
-                    </time>
+                    <time className="ml-2">{formatMessageTime(msg.createdAt)}</time>
                   </div>
-                  
+
                   {/* Message bubble */}
-                  <div className={`message-bubble ${isOwnMessage ? "sender-bubble" : "receiver-bubble"}`}>
+                  <div
+                    className={`message-bubble ${isOwnMessage ? 'sender-bubble' : 'receiver-bubble'}`}
+                  >
                     {msg.image && (
-                      <img
-                        src={msg.image}
-                        alt="Attachment"
-                        className="message-image"
-                      />
+                      <img src={msg.image} alt="Attachment" className="message-image" />
                     )}
                     {msg.text && <p>{msg.text}</p>}
                     {msg.voiceMessage && (
-                      <VoicePlayer 
-                        url={msg.voiceMessage} 
-                        duration={msg.voiceDuration} 
-                        waveform={msg.voiceWaveform} 
+                      <VoicePlayer
+                        url={msg.voiceMessage}
+                        duration={msg.voiceDuration}
+                        waveform={msg.voiceWaveform}
                       />
                     )}
                   </div>
-                  
+
                   {/* Reactions */}
                   <div className="message-actions">
-                    <MessageReactions 
-                      message={msg} 
-                      isOwnMessage={isOwnMessage} 
-                    />
+                    <MessageReactions message={msg} isOwnMessage={isOwnMessage} />
                   </div>
                 </div>
-                
+
                 {isOwnMessage && (
                   <div className="avatar-container">
                     <div className="avatar-image">
-                      <img
-                        src={authUser?.profilePic || "/avatar.png"}
-                        alt="user"
-                      />
+                      <img src={authUser?.profilePic || '/avatar.png'} alt="user" />
                     </div>
                   </div>
                 )}

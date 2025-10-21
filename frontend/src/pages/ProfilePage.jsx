@@ -1,34 +1,31 @@
-import React from 'react'
-import {useState} from 'react'
-import {useAuthStore} from '../store/useAuthStore.js'
-import { Camera, Mail, User, ArrowLeft } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import React from 'react';
+import { useState } from 'react';
+import { useAuthStore } from '../store/useAuthStore.js';
+import { Camera, Mail, User, ArrowLeft } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const ProfilePage = () => {
-  const {authUser, isUpdatingProfile, updateProfile} = useAuthStore();
-  const [selectedImg,setSelectedImg] = useState(null);
+  const { authUser, isUpdatingProfile, updateProfile } = useAuthStore();
+  const [selectedImg, setSelectedImg] = useState(null);
 
-  const handleImageUpload = async(e) => {
+  const handleImageUpload = async (e) => {
     const file = e.target.files[0];
-    if(!file) return;
+    if (!file) return;
     const reader = new FileReader();
     reader.readAsDataURL(file);
-    reader.onload = async () =>{
+    reader.onload = async () => {
       const base64Image = reader.result;
       setSelectedImg(base64Image);
-      await updateProfile({profilePic: base64Image})
-    }
-  }
+      await updateProfile({ profilePic: base64Image });
+    };
+  };
   const navigate = useNavigate();
 
   return (
     <div className="h-screen pt-20">
       <div className="max-w-2xl mx-auto p-4 py-8">
         <div className="flex items-center mb-4">
-          <button
-            onClick={() => navigate(-1)}
-            className="btn btn-ghost btn-circle"
-          >
+          <button onClick={() => navigate(-1)} className="btn btn-ghost btn-circle">
             <ArrowLeft className="w-5 h-5" />
           </button>
           <h1 className="text-2xl font-bold ml-2">Profile</h1>
@@ -44,7 +41,7 @@ const ProfilePage = () => {
           <div className="flex flex-col items-center gap-4">
             <div className="relative">
               <img
-                src={selectedImg || authUser.profilePic || "/avatar.png"}
+                src={selectedImg || authUser.profilePic || '/avatar.png'}
                 alt="Profile"
                 className="size-32 rounded-full object-cover border-4 "
               />
@@ -55,7 +52,7 @@ const ProfilePage = () => {
                   bg-base-content hover:scale-105
                   p-2 rounded-full cursor-pointer 
                   transition-all duration-200
-                  ${isUpdatingProfile ? "animate-pulse pointer-events-none" : ""}
+                  ${isUpdatingProfile ? 'animate-pulse pointer-events-none' : ''}
                 `}
               >
                 <Camera className="w-5 h-5 text-base-200" />
@@ -70,7 +67,7 @@ const ProfilePage = () => {
               </label>
             </div>
             <p className="text-sm text-zinc-400">
-              {isUpdatingProfile ? "Uploading..." : "Click the camera icon to update your photo"}
+              {isUpdatingProfile ? 'Uploading...' : 'Click the camera icon to update your photo'}
             </p>
           </div>
 
@@ -97,7 +94,7 @@ const ProfilePage = () => {
             <div className="space-y-3 text-sm">
               <div className="flex items-center justify-between py-2 border-b border-zinc-700">
                 <span>Member Since</span>
-                <span>{authUser.createdAt?.split("T")[0]}</span>
+                <span>{authUser.createdAt?.split('T')[0]}</span>
               </div>
               <div className="flex items-center justify-between py-2">
                 <span>Account Status</span>
@@ -109,6 +106,6 @@ const ProfilePage = () => {
       </div>
     </div>
   );
-}
+};
 
-export default ProfilePage
+export default ProfilePage;

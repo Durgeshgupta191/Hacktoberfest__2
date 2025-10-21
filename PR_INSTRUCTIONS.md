@@ -36,12 +36,14 @@ This PR implements voice message functionality for the chat application with the
    - Improved error handling for missing Cloudinary configuration
 
 ### Testing Done:
+
 - Tested voice recording and playback
 - Verified Cloudinary integration for voice message storage
 - Verified real-time updates work for voice messages
 - Tested error handling when Cloudinary is not configured
 
 ### Screenshots:
+
 [You can add screenshots of the voice message UI here if desired]
 
 ### To Create the PR:
@@ -53,6 +55,7 @@ This PR implements voice message functionality for the chat application with the
 ### Note About Cloudinary Requirements:
 
 This implementation requires the following environment variables to be set:
+
 - CLOUDINARY_CLOUD_NAME
 - CLOUDINARY_API_KEY
 - CLOUDINARY_API_SECRET

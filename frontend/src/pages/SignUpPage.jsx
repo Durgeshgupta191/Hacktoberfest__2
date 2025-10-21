@@ -1,61 +1,53 @@
-import { useEffect, useState } from "react";
-import { useAuthStore } from "../store/useAuthStore";
-import AuthImagePattern from "../components/AuthImagePattern";
-import { Link, useNavigate } from "react-router-dom";
-import {
-  Eye,
-  EyeOff,
-  Loader2,
-  Lock,
-  Mail,
-  MessageSquare,
-  User,
-} from "lucide-react";
-import Footer from "../components/Footer";
-import toast from "react-hot-toast";
-import { GoogleLogin } from "@react-oauth/google";
+import { useEffect, useState } from 'react';
+import { useAuthStore } from '../store/useAuthStore';
+import AuthImagePattern from '../components/AuthImagePattern';
+import { Link, useNavigate } from 'react-router-dom';
+import { Eye, EyeOff, Loader2, Lock, Mail, MessageSquare, User } from 'lucide-react';
+import Footer from '../components/Footer';
+import toast from 'react-hot-toast';
+import { GoogleLogin } from '@react-oauth/google';
 
 const SignupPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
-    fullName: "",
-    email: "",
-    password: "",
-    confirmPassword: "",
+    fullName: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
   });
-  const [passwordError, setPasswordError] = useState("");
+  const [passwordError, setPasswordError] = useState('');
   const navigate = useNavigate();
   const { signup, isSigningUp, googleLogin } = useAuthStore();
 
   // Scroll to top when component mounts
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
 
   const validateForm = () => {
     if (!formData.fullName.trim()) {
-      toast.error("Full name is required");
+      toast.error('Full name is required');
       return false;
     }
     if (!formData.email.trim()) {
-      toast.error("Email is required");
+      toast.error('Email is required');
       return false;
     }
     if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      toast.error("Invalid email format");
+      toast.error('Invalid email format');
       return false;
     }
     if (!formData.password || formData.password.length < 6) {
-      toast.error("Password must be at least 6 characters");
+      toast.error('Password must be at least 6 characters');
       return false;
     }
     if (formData.password !== formData.confirmPassword) {
-      toast.error("Passwords do not match");
-      setPasswordError("Passwords do not match");
+      toast.error('Passwords do not match');
+      setPasswordError('Passwords do not match');
       return false;
     }
 
-    setPasswordError("");
+    setPasswordError('');
     return true;
   };
 
@@ -63,19 +55,17 @@ const SignupPage = () => {
     e.preventDefault();
 
     // Scroll to top on form submission
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
 
     if (!validateForm()) return;
 
     try {
       await signup(formData);
-      navigate("/verify-otp");
+      navigate('/verify-otp');
     } catch (err) {
       // Prefer server-provided message when available
       const message =
-        err?.response?.data?.message ||
-        err?.message ||
-        "Sign up failed. Please try again.";
+        err?.response?.data?.message || err?.message || 'Sign up failed. Please try again.';
       toast.error(message);
     }
   };
@@ -83,14 +73,14 @@ const SignupPage = () => {
   const handleGoogleSuccess = async (credentialResponse) => {
     try {
       await googleLogin(credentialResponse.credential);
-      navigate("/");
+      navigate('/');
     } catch (err) {
-      toast.error(err?.message || "Google login failed");
+      toast.error(err?.message || 'Google login failed');
     }
   };
 
   const handleGoogleError = () => {
-    toast.error("Google login failed. Please try again.");
+    toast.error('Google login failed. Please try again.');
   };
 
   return (
@@ -98,7 +88,7 @@ const SignupPage = () => {
       <div className="h-5"></div>
       <div
         className="min-h-screen flex items-center justify-center p-4 sm:p-6 pt-20"
-        style={{ backgroundColor: "#0f1419" }}
+        style={{ backgroundColor: '#0f1419' }}
       >
         <div className="w-full max-w-6xl m-auto">
           <div className="">
@@ -111,12 +101,8 @@ const SignupPage = () => {
                     <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center border border-[#605dff]/30">
                       <MessageSquare className="w-8 h-8 text-[#605dff]" />
                     </div>
-                    <h1 className="text-4xl font-bold text-white">
-                      Create Account
-                    </h1>
-                    <p className="text-gray-400 text-base">
-                      Get started with your free account
-                    </p>
+                    <h1 className="text-4xl font-bold text-white">Create Account</h1>
+                    <p className="text-gray-400 text-base">Get started with your free account</p>
                   </div>
                 </div>
 
@@ -149,9 +135,7 @@ const SignupPage = () => {
                       className="peer w-full bg-[#2d3748] text-white rounded-xl border border-gray-700 focus:border-[#605dff] focus:ring-2 focus:ring-[#605dff]/40 transition-all duration-200 pl-12 pr-4 py-3.5 outline-none"
                       placeholder=" "
                       value={formData.fullName}
-                      onChange={(e) =>
-                        setFormData({ ...formData, fullName: e.target.value })
-                      }
+                      onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
                       required
                     />
                     <label
@@ -174,9 +158,7 @@ const SignupPage = () => {
                       className="peer w-full bg-[#2d3748] text-white rounded-xl border border-gray-700 focus:border-[#605dff] focus:ring-2 focus:ring-[#605dff]/40 transition-all duration-200 pl-12 pr-4 py-3.5 outline-none"
                       placeholder=" "
                       value={formData.email}
-                      onChange={(e) =>
-                        setFormData({ ...formData, email: e.target.value })
-                      }
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                       required
                     />
                     <label
@@ -195,13 +177,11 @@ const SignupPage = () => {
                     <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 w-5 h-5 z-10" />
                     <input
                       id="password"
-                      type={showPassword ? "text" : "password"}
+                      type={showPassword ? 'text' : 'password'}
                       className="peer w-full bg-[#2d3748] text-white rounded-xl border border-gray-700 focus:border-[#605dff] focus:ring-2 focus:ring-[#605dff]/40 transition-all duration-200 pl-12 pr-12 py-3.5 outline-none"
                       placeholder=" "
                       value={formData.password}
-                      onChange={(e) =>
-                        setFormData({ ...formData, password: e.target.value })
-                      }
+                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                       required
                     />
                     <label
@@ -218,11 +198,7 @@ const SignupPage = () => {
                       className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-[#605dff] transition z-10"
                       onClick={() => setShowPassword(!showPassword)}
                     >
-                      {showPassword ? (
-                        <EyeOff className="h-5 w-5" />
-                      ) : (
-                        <Eye className="h-5 w-5" />
-                      )}
+                      {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                     </button>
                   </div>
 
@@ -231,13 +207,11 @@ const SignupPage = () => {
                     <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 w-5 h-5 z-10" />
                     <input
                       id="confirmPassword"
-                      type={showPassword ? "text" : "password"}
+                      type={showPassword ? 'text' : 'password'}
                       className={`peer w-full bg-[#2d3748] text-white rounded-xl border ${
-                        passwordError ? "border-red-500" : "border-gray-700"
+                        passwordError ? 'border-red-500' : 'border-gray-700'
                       } focus:border-[#605dff] focus:ring-2 ${
-                        passwordError
-                          ? "focus:ring-red-500/40"
-                          : "focus:ring-[#605dff]/40"
+                        passwordError ? 'focus:ring-red-500/40' : 'focus:ring-[#605dff]/40'
                       } transition-all duration-200 pl-12 pr-12 py-3.5 outline-none`}
                       placeholder=" "
                       value={formData.confirmPassword}
@@ -245,9 +219,9 @@ const SignupPage = () => {
                         const value = e.target.value;
                         setFormData({ ...formData, confirmPassword: value });
                         if (formData.password && formData.password !== value) {
-                          setPasswordError("Passwords do not match");
+                          setPasswordError('Passwords do not match');
                         } else {
-                          setPasswordError("");
+                          setPasswordError('');
                         }
                       }}
                       required
@@ -266,18 +240,12 @@ const SignupPage = () => {
                       className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-[#605dff] transition z-10"
                       onClick={() => setShowPassword(!showPassword)}
                     >
-                      {showPassword ? (
-                        <EyeOff className="h-5 w-5" />
-                      ) : (
-                        <Eye className="h-5 w-5" />
-                      )}
+                      {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                     </button>
                   </div>
 
                   {/* Error Message */}
-                  {passwordError && (
-                    <p className="text-red-400 text-sm -mt-2">{passwordError}</p>
-                  )}
+                  {passwordError && <p className="text-red-400 text-sm -mt-2">{passwordError}</p>}
 
                   {/* Submit */}
                   <button
@@ -291,14 +259,14 @@ const SignupPage = () => {
                         <span>Creating Account...</span>
                       </>
                     ) : (
-                      "Create Account"
+                      'Create Account'
                     )}
                   </button>
                 </form>
 
                 <div className="text-center mt-6">
                   <p className="text-gray-400 text-sm">
-                    Already have an account?{" "}
+                    Already have an account?{' '}
                     <Link
                       to="/login"
                       className="text-[#605dff] hover:text-[#6663ffc9] font-medium hover:underline"

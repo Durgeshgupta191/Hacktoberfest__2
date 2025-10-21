@@ -18,14 +18,14 @@ A **real-time chat app** built with the **MERN Stack**, **Socket.io**, **Tailwin
 
 ## 🧰 Tech Stack
 
-| Category | Technologies |
-|-----------|--------------|
-| **Frontend** | React, Zustand, TailwindCSS, DaisyUI, Socket.io-client |
-| **Backend** | Node.js, Express.js, MongoDB, Socket.io |
-| **Authentication** | JWT (JSON Web Token) |
-| **Media Storage** | Cloudinary |
-| **State Management** | Zustand |
-| **Environment** | .env configuration |
+| Category             | Technologies                                           |
+| -------------------- | ------------------------------------------------------ |
+| **Frontend**         | React, Zustand, TailwindCSS, DaisyUI, Socket.io-client |
+| **Backend**          | Node.js, Express.js, MongoDB, Socket.io                |
+| **Authentication**   | JWT (JSON Web Token)                                   |
+| **Media Storage**    | Cloudinary                                             |
+| **State Management** | Zustand                                                |
+| **Environment**      | .env configuration                                     |
 
 ---
 
@@ -49,7 +49,7 @@ CLOUDINARY_API_KEY=
 CLOUDINARY_API_SECRET=
 
 FRONTEND_URL=
-````
+```
 
 ```bash
 git clone <your-github-repo-link>
@@ -78,6 +78,7 @@ VITE_GIPHY_API=
    - Backend: http://localhost:5001
 
 **Option 2: Run both servers manually**
+
 ```bash
 
 cd backend
@@ -93,7 +94,8 @@ cd frontend
 npm run dev
 
 ```
- **Access the application**
-   - Frontend: http://localhost:5173
-   - Backend: http://localhost:5001
 
+**Access the application**
+
+- Frontend: http://localhost:5173
+- Backend: http://localhost:5001

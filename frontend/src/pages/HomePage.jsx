@@ -1,11 +1,11 @@
-import React, { useState } from "react";
-import { useChatStore } from "../store/useChatStore.js";
+import React, { useState } from 'react';
+import { useChatStore } from '../store/useChatStore.js';
 
-import Sidebar from "../components/Sidebar";
-import NoChatSelected from "../components/NoChatSelected";
-import ChatContainer from "../components/ChatContainer";
-import GroupChatContainer from "../components/GroupChatContainer.jsx";
-import { Menu, X } from "lucide-react";
+import Sidebar from '../components/Sidebar';
+import NoChatSelected from '../components/NoChatSelected';
+import ChatContainer from '../components/ChatContainer';
+import GroupChatContainer from '../components/GroupChatContainer.jsx';
+import { Menu, X } from 'lucide-react';
 
 const HomePage = () => {
   const { selectedUser, selectedGroup } = useChatStore();
@@ -31,7 +31,7 @@ const HomePage = () => {
             {/* RESPONSIVE: Sidebar with mobile overlay behavior */}
             <div
               className={`
-                ${showSidebar ? "translate-x-0" : "-translate-x-full"}
+                ${showSidebar ? 'translate-x-0' : '-translate-x-full'}
                 lg:translate-x-0
                 transition-transform duration-300 ease-in-out
                 absolute lg:relative
@@ -61,16 +61,10 @@ const HomePage = () => {
                 !selectedGroup ? (
                   <NoChatSelected setShowSidebar={setShowSidebar} />
                 ) : (
-                  <GroupChatContainer
-                    showSidebar={showSidebar}
-                    setShowSidebar={setShowSidebar}
-                  />
+                  <GroupChatContainer showSidebar={showSidebar} setShowSidebar={setShowSidebar} />
                 )
               ) : (
-                <ChatContainer
-                  showSidebar={showSidebar}
-                  setShowSidebar={setShowSidebar}
-                />
+                <ChatContainer showSidebar={showSidebar} setShowSidebar={setShowSidebar} />
               )}
             </div>
           </div>

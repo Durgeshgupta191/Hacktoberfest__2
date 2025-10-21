@@ -1,9 +1,9 @@
-import { create } from "zustand";
-import { axiosInstance } from "../lib/axios";
-import toast from "react-hot-toast";
-import { io } from "socket.io-client";
+import { create } from 'zustand';
+import { axiosInstance } from '../lib/axios';
+import toast from 'react-hot-toast';
+import { io } from 'socket.io-client';
 
-const BASE_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:5001";
+const BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5001';
 
 export const useAuthStore = create((set, get) => ({
   authUser: null,
@@ -23,7 +23,7 @@ export const useAuthStore = create((set, get) => ({
   otpResendTimer: 0,
 
   // Helper to extract error message safely
-  _getErrorMessage: (error, fallback = "An error occurred") => {
+  _getErrorMessage: (error, fallback = 'An error occurred') => {
     if (!error) return fallback;
     if (error.response && error.response.data) {
       return (
@@ -39,7 +39,7 @@ export const useAuthStore = create((set, get) => ({
 
   checkAuth: async () => {
     try {
-      const res = await axiosInstance.get("/auth/check");
+      const res = await axiosInstance.get('/auth/check');
       set({ authUser: res.data });
       get().connectSocket();
       // fetch blocked users after auth
@@ -51,7 +51,7 @@ export const useAuthStore = create((set, get) => ({
       }
     } catch (error) {
       set({ authUser: null });
-      console.log("Error in checkAuth: ", error);
+      console.log('Error in checkAuth: ', error);
     } finally {
       set({ isCheckingAuth: false });
     }
@@ -81,14 +81,14 @@ export const useAuthStore = create((set, get) => ({
   signup: async (data) => {
     set({ isSigningUp: true });
     try {
-      const res = await axiosInstance.post("/auth/signup", data);
+      const res = await axiosInstance.post('/auth/signup', data);
       // Backend should return the email and indicate OTP was sent
       set({ pendingEmail: res.data.email, otpSent: true });
-      toast.success("OTP sent to your email!");
+      toast.success('OTP sent to your email!');
     } catch (error) {
-      const msg = get()._getErrorMessage(error, "Signup failed");
+      const msg = get()._getErrorMessage(error, 'Signup failed');
       toast.error(msg);
-      console.log("Error in signup: ", error);
+      console.log('Error in signup: ', error);
     } finally {
       set({ isSigningUp: false });
     }
@@ -97,17 +97,17 @@ export const useAuthStore = create((set, get) => ({
   verifyOTP: async (otp) => {
     set({ isVerifyingOTP: true });
     try {
-      const res = await axiosInstance.post("/auth/verify-otp", {
+      const res = await axiosInstance.post('/auth/verify-otp', {
         email: get().pendingEmail,
         otp,
       });
       set({ authUser: res.data, pendingEmail: null, otpSent: false });
-      toast.success("Email verified! Logged in successfully");
+      toast.success('Email verified! Logged in successfully');
       get().connectSocket();
     } catch (error) {
-      const msg = get()._getErrorMessage(error, "OTP verification failed");
+      const msg = get()._getErrorMessage(error, 'OTP verification failed');
       toast.error(msg);
-      console.log("Error in verifyOTP: ", error);
+      console.log('Error in verifyOTP: ', error);
     } finally {
       set({ isVerifyingOTP: false });
     }
@@ -115,11 +115,11 @@ export const useAuthStore = create((set, get) => ({
 
   resendOTP: async () => {
     try {
-      await axiosInstance.post("/auth/resend-otp", {
+      await axiosInstance.post('/auth/resend-otp', {
         email: get().pendingEmail,
       });
       set({ otpResendTimer: 60 });
-      toast.success("OTP resent to your email");
+      toast.success('OTP resent to your email');
 
       // Countdown timer
       const interval = setInterval(() => {
@@ -130,7 +130,7 @@ export const useAuthStore = create((set, get) => ({
         });
       }, 1000);
     } catch (error) {
-      const msg = get()._getErrorMessage(error, "Failed to resend OTP");
+      const msg = get()._getErrorMessage(error, 'Failed to resend OTP');
       toast.error(msg);
     }
   },
@@ -138,12 +138,12 @@ export const useAuthStore = create((set, get) => ({
   login: async (data) => {
     set({ isLoggingIn: true });
     try {
-      const res = await axiosInstance.post("/auth/login", data);
+      const res = await axiosInstance.post('/auth/login', data);
       set({ authUser: res.data });
       get().connectSocket();
-      toast.success("Logged in successfully");
+      toast.success('Logged in successfully');
     } catch (error) {
-      const msg = get()._getErrorMessage(error, "Login failed");
+      const msg = get()._getErrorMessage(error, 'Login failed');
       toast.error(msg);
     } finally {
       set({ isLoggingIn: false });
@@ -153,14 +153,14 @@ export const useAuthStore = create((set, get) => ({
   googleLogin: async (googleToken) => {
     set({ isLoggingIn: true });
     try {
-      const res = await axiosInstance.post("/auth/google-login", {
+      const res = await axiosInstance.post('/auth/google-login', {
         token: googleToken,
       });
       set({ authUser: res.data });
-      toast.success("Logged in successfully!");
+      toast.success('Logged in successfully!');
       get().connectSocket();
     } catch (error) {
-      const msg = get()._getErrorMessage(error, "Google login failed");
+      const msg = get()._getErrorMessage(error, 'Google login failed');
       toast.error(msg);
     } finally {
       set({ isLoggingIn: false });
@@ -169,30 +169,30 @@ export const useAuthStore = create((set, get) => ({
 
   logout: async () => {
     try {
-      await axiosInstance.post("/auth/logout");
+      await axiosInstance.post('/auth/logout');
       set({ authUser: null });
-  set({ blockedUsers: [] });
-      toast.success("Logged out successfully");
+      set({ blockedUsers: [] });
+      toast.success('Logged out successfully');
       get().disconnectSocket();
 
       // Clear encryption data
       try {
-        const mod = await import("./useEncryptionStore");
+        const mod = await import('./useEncryptionStore');
         if (
           mod &&
           mod.useEncryptionStore &&
-          typeof mod.useEncryptionStore.getState === "function"
+          typeof mod.useEncryptionStore.getState === 'function'
         ) {
           const clearFn = mod.useEncryptionStore.getState().clearEncryptionData;
-          if (typeof clearFn === "function") {
+          if (typeof clearFn === 'function') {
             clearFn();
           }
         }
       } catch (err) {
-        console.warn("Unable to clear encryption data on logout:", err);
+        console.warn('Unable to clear encryption data on logout:', err);
       }
     } catch (error) {
-      const msg = get()._getErrorMessage(error, "Logout failed");
+      const msg = get()._getErrorMessage(error, 'Logout failed');
       toast.error(msg);
     }
   },
@@ -200,11 +200,11 @@ export const useAuthStore = create((set, get) => ({
   updateProfile: async (data) => {
     set({ isUpdatingProfile: true });
     try {
-      const res = await axiosInstance.put("/auth/update-profile", data);
+      const res = await axiosInstance.put('/auth/update-profile', data);
       set({ authUser: res.data });
-      toast.success("Profile updated successfully");
+      toast.success('Profile updated successfully');
     } catch (error) {
-      const msg = get()._getErrorMessage(error, "Failed to update profile");
+      const msg = get()._getErrorMessage(error, 'Failed to update profile');
       toast.error(msg);
     } finally {
       set({ isUpdatingProfile: false });
@@ -223,13 +223,13 @@ export const useAuthStore = create((set, get) => ({
     socket.connect();
     set({ socket: socket });
 
-    socket.on("getOnlineUsers", (userIds) => {
+    socket.on('getOnlineUsers', (userIds) => {
       set({ onlineUsers: userIds });
     });
 
-    socket.on("userTyping", ({ userId }) => {
+    socket.on('userTyping', ({ userId }) => {
       // ignore typing from users who are blocked by me or who blocked me
-      const blocked = get().blockedUsers.map(u => u._id ? u._id : u);
+      const blocked = get().blockedUsers.map((u) => (u._id ? u._id : u));
       const currentUser = get().authUser;
       if (blocked.includes(userId)) return;
       set((state) => ({
@@ -237,8 +237,8 @@ export const useAuthStore = create((set, get) => ({
       }));
     });
 
-    socket.on("userStopTyping", ({ userId }) => {
-      const blocked = get().blockedUsers.map(u => u._id ? u._id : u);
+    socket.on('userStopTyping', ({ userId }) => {
+      const blocked = get().blockedUsers.map((u) => (u._id ? u._id : u));
       if (blocked.includes(userId)) return;
       set((state) => {
         const newTypingUsers = { ...state.typingUsers };
@@ -248,15 +248,15 @@ export const useAuthStore = create((set, get) => ({
     });
 
     // Global handlers for incoming messages
-    socket.on("newMessage", async (message) => {
+    socket.on('newMessage', async (message) => {
       try {
-        console.debug("[socket] newMessage received", message);
-        const mod = await import("./useChatStore");
+        console.debug('[socket] newMessage received', message);
+        const mod = await import('./useChatStore');
         const chatStore = mod.useChatStore;
-  const currentUser = get().authUser;
-  const blocked = get().blockedUsers.map(u => u._id ? u._id : u);
-  // ignore incoming messages from blocked users
-  if (blocked.includes(message.senderId)) return;
+        const currentUser = get().authUser;
+        const blocked = get().blockedUsers.map((u) => (u._id ? u._id : u));
+        // ignore incoming messages from blocked users
+        if (blocked.includes(message.senderId)) return;
         if (!chatStore || !currentUser) return;
 
         const selectedUser = chatStore.getState().selectedUser;
@@ -269,18 +269,18 @@ export const useAuthStore = create((set, get) => ({
           }
         }
       } catch (err) {
-        console.warn("global newMessage handler error", err);
+        console.warn('global newMessage handler error', err);
       }
     });
 
-    socket.on("newGroupMessage", async (message) => {
+    socket.on('newGroupMessage', async (message) => {
       try {
-        console.debug("[socket] newGroupMessage received", message);
-        const mod = await import("./useChatStore");
+        console.debug('[socket] newGroupMessage received', message);
+        const mod = await import('./useChatStore');
         const chatStore = mod.useChatStore;
-  const currentUser = get().authUser;
-  const blocked = get().blockedUsers.map(u => u._id ? u._id : u);
-  if (blocked.includes(message.senderId)) return;
+        const currentUser = get().authUser;
+        const blocked = get().blockedUsers.map((u) => (u._id ? u._id : u));
+        if (blocked.includes(message.senderId)) return;
         if (!chatStore || !currentUser) return;
 
         const selectedGroup = chatStore.getState().selectedGroup;
@@ -294,7 +294,7 @@ export const useAuthStore = create((set, get) => ({
           }
         }
       } catch (err) {
-        console.warn("global newGroupMessage handler error", err);
+        console.warn('global newGroupMessage handler error', err);
       }
     });
   },

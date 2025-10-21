@@ -1,24 +1,23 @@
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState, useEffect } from 'react';
 
-import { useChatStore } from "../store/useChatStore";
-import { useAuthStore } from "../store/useAuthStore";
-import { Image, Send, X, Mic } from "lucide-react";
-import toast from "../lib/toast";
-import { VoiceRecorder } from "./VoiceMessage";
+import { useChatStore } from '../store/useChatStore';
+import { useAuthStore } from '../store/useAuthStore';
+import { Image, Send, X, Mic } from 'lucide-react';
+import toast from '../lib/toast';
+import { VoiceRecorder } from './VoiceMessage';
 
 const MessageInput = ({ isGroup = false }) => {
-  const [text, setText] = useState("");
+  const [text, setText] = useState('');
   const [imagePreview, setImagePreview] = useState(null);
   const fileInputRef = useRef(null);
-  const { sendMessage, sendGroupMessage, selectedGroup, selectedUser } =
-    useChatStore();
+  const { sendMessage, sendGroupMessage, selectedGroup, selectedUser } = useChatStore();
   const { socket } = useAuthStore();
   const typingTimeoutRef = useRef(null);
   const [showVoiceRecorder, setShowVoiceRecorder] = useState(false);
 
   const [showGifPicker, setShowGifPicker] = useState(false);
   const [gifs, setGifs] = useState([]);
-  const [gifSearchQuery, setGifSearchQuery] = useState("");
+  const [gifSearchQuery, setGifSearchQuery] = useState('');
   const [gifOffset, setGifOffset] = useState(0);
   const [isLoadingGifs, setIsLoadingGifs] = useState(false);
   const [selectedGifUrl, setSelectedGifUrl] = useState(null);
@@ -47,8 +46,8 @@ const MessageInput = ({ isGroup = false }) => {
         setGifOffset(offset);
       }
     } catch (error) {
-      console.error("Failed to fetch GIFs:", error);
-      toast.error("Failed to load GIFs");
+      console.error('Failed to fetch GIFs:', error);
+      toast.error('Failed to load GIFs');
     } finally {
       setIsLoadingGifs(false);
     }
@@ -71,11 +70,7 @@ const MessageInput = ({ isGroup = false }) => {
 
   const handleGifScroll = (e) => {
     const { scrollTop, scrollHeight, clientHeight } = e.target;
-    if (
-      scrollHeight - scrollTop <= clientHeight * 1.5 &&
-      !isLoadingGifs &&
-      gifOffset < 94
-    ) {
+    if (scrollHeight - scrollTop <= clientHeight * 1.5 && !isLoadingGifs && gifOffset < 94) {
       fetchGifs(gifOffset + GIF_LIMIT, false);
     }
   };
@@ -86,14 +81,14 @@ const MessageInput = ({ isGroup = false }) => {
     setImagePreview(gifUrl);
     setShowGifPicker(false);
     setGifs([]);
-    setGifSearchQuery("");
+    setGifSearchQuery('');
     setGifOffset(0);
   };
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
-    if (!file.type.startsWith("image/")) {
-      toast.error("Please select an image file");
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file');
       return;
     }
 
@@ -108,7 +103,7 @@ const MessageInput = ({ isGroup = false }) => {
   const removeImage = () => {
     setImagePreview(null);
     setSelectedGifUrl(null);
-    if (fileInputRef.current) fileInputRef.current.value = "";
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const handleSendMessage = async (e) => {
@@ -123,24 +118,24 @@ const MessageInput = ({ isGroup = false }) => {
 
       if (isGroup) {
         if (!selectedGroup?._id) {
-          toast.error("No group selected!");
+          toast.error('No group selected!');
           return;
         }
         await sendGroupMessage(selectedGroup._id, messageData);
       } else {
         if (!selectedUser?._id) {
-          toast.error("No user selected!");
+          toast.error('No user selected!');
           return;
         }
         await sendMessage(messageData);
       }
 
-      setText("");
+      setText('');
       setImagePreview(null);
-      if (fileInputRef.current) fileInputRef.current.value = "";
+      if (fileInputRef.current) fileInputRef.current.value = '';
     } catch (error) {
-      console.error("Failed to send message:", error);
-      toast.error("Failed to send message");
+      console.error('Failed to send message:', error);
+      toast.error('Failed to send message');
     }
   };
 
@@ -149,15 +144,15 @@ const MessageInput = ({ isGroup = false }) => {
 
     const handleTyping = () => {
       if (text.trim()) {
-        socket.emit("startTyping", { receiverId: selectedUser._id });
+        socket.emit('startTyping', { receiverId: selectedUser._id });
         if (typingTimeoutRef.current) {
           clearTimeout(typingTimeoutRef.current);
         }
         typingTimeoutRef.current = setTimeout(() => {
-          socket.emit("stopTyping", { receiverId: selectedUser._id });
+          socket.emit('stopTyping', { receiverId: selectedUser._id });
         }, 1000);
       } else {
-        socket.emit("stopTyping", { receiverId: selectedUser._id });
+        socket.emit('stopTyping', { receiverId: selectedUser._id });
       }
     };
 
@@ -197,7 +192,7 @@ const MessageInput = ({ isGroup = false }) => {
           <VoiceRecorder onClose={() => setShowVoiceRecorder(false)} />
         </div>
       )}
-      
+
       {showGifPicker && (
         <div className="mb-3 border border-zinc-700 rounded-lg bg-base-200 p-3">
           <div className="flex items-center justify-between mb-2">
@@ -206,7 +201,7 @@ const MessageInput = ({ isGroup = false }) => {
               onClick={() => {
                 setShowGifPicker(false);
                 setGifs([]);
-                setGifSearchQuery("");
+                setGifSearchQuery('');
                 setGifOffset(0);
               }}
               className="btn btn-ghost btn-xs"
@@ -252,9 +247,7 @@ const MessageInput = ({ isGroup = false }) => {
           )}
 
           {gifOffset >= 94 && (
-            <div className="text-center py-2 text-xs text-zinc-500">
-              Maximum GIFs loaded (100)
-            </div>
+            <div className="text-center py-2 text-xs text-zinc-500">Maximum GIFs loaded (100)</div>
           )}
         </div>
       )}
@@ -280,7 +273,7 @@ const MessageInput = ({ isGroup = false }) => {
           <button
             type="button"
             className={`flex btn btn-circle btn-sm sm:btn-md
-                     ${showVoiceRecorder ? "text-emerald-500" : "text-zinc-400"}`}
+                     ${showVoiceRecorder ? 'text-emerald-500' : 'text-zinc-400'}`}
             onClick={() => {
               setShowVoiceRecorder(!showVoiceRecorder);
               if (showGifPicker) setShowGifPicker(false);
@@ -293,7 +286,7 @@ const MessageInput = ({ isGroup = false }) => {
           <button
             type="button"
             className={`flex btn btn-circle btn-sm sm:btn-md
-                     ${imagePreview ? "text-emerald-500" : "text-zinc-400"}`}
+                     ${imagePreview ? 'text-emerald-500' : 'text-zinc-400'}`}
             onClick={() => fileInputRef.current?.click()}
           >
             <Image size={20} />
@@ -303,7 +296,7 @@ const MessageInput = ({ isGroup = false }) => {
           <button
             type="button"
             className={`flex btn btn-circle btn-sm sm:btn-md
-                     ${showGifPicker ? "text-emerald-500" : "text-zinc-400"}`}
+                     ${showGifPicker ? 'text-emerald-500' : 'text-zinc-400'}`}
             onClick={() => {
               setShowGifPicker(!showGifPicker);
               if (showVoiceRecorder) setShowVoiceRecorder(false);

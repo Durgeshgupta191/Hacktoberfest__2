@@ -1,14 +1,14 @@
-import { useEffect, useMemo, useState } from "react";
-import { useChatStore } from "../store/useChatStore";
-import { useAuthStore } from "../store/useAuthStore";
-import ContactListSkeleton from "./skeletons/ContactListSkeleton";
-import { Users, Pin, UsersRound, X } from "lucide-react";
-import PinButton from "./PinButton";
-import ArchiveButton from "./ArchiveButton";
-import GroupSidebarIcon from "./groupsSidebarIcon";
+import { useEffect, useMemo, useState } from 'react';
+import { useChatStore } from '../store/useChatStore';
+import { useAuthStore } from '../store/useAuthStore';
+import ContactListSkeleton from './skeletons/ContactListSkeleton';
+import { Users, Pin, UsersRound, X } from 'lucide-react';
+import PinButton from './PinButton';
+import ArchiveButton from './ArchiveButton';
+import GroupSidebarIcon from './groupsSidebarIcon';
 
 const formatLastSeen = (lastSeen) => {
-  if (!lastSeen) return "";
+  if (!lastSeen) return '';
   const now = new Date();
   const lastSeenDate = new Date(lastSeen);
   const diffInMs = now - lastSeenDate;
@@ -16,7 +16,7 @@ const formatLastSeen = (lastSeen) => {
   const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
   const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
 
-  if (diffInMinutes < 1) return "Just now";
+  if (diffInMinutes < 1) return 'Just now';
   if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
   if (diffInHours < 24) return `${diffInHours}h ago`;
   if (diffInDays < 7) return `${diffInDays}d ago`;
@@ -47,7 +47,7 @@ const Sidebar = ({ setShowSidebar }) => {
   const [showArchived, setShowArchived] = useState(false);
   const [createGroup, setCreateGroup] = useState(false);
 
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState('');
 
   // Debounce query
   const debouncedQuery = useMemo(() => query, [query]);
@@ -70,9 +70,7 @@ const Sidebar = ({ setShowSidebar }) => {
   // Separate pinned , archived and unpinned , unarchived users
 
   //for archived users
-  const archivedUsers = filteredUsers.filter((user) =>
-    isChatArchived(user._id)
-  );
+  const archivedUsers = filteredUsers.filter((user) => isChatArchived(user._id));
   //for pinned users but not archived one
   const pinnedUsers = filteredUsers.filter(
     (user) => isChatPinned(user._id) && !isChatArchived(user._id)
@@ -84,20 +82,19 @@ const Sidebar = ({ setShowSidebar }) => {
 
   // Combine with pinned users first
   const sortedUsers = [...pinnedUsers, ...unpinnedUsers];
-  const [groupName, setGroupName] = useState("");
+  const [groupName, setGroupName] = useState('');
 
   const handleCreateGroup = () => {
-    if (!groupName.trim()) return alert("Please enter a group name.");
+    if (!groupName.trim()) return alert('Please enter a group name.');
     addGroup(JSON.stringify({ name: groupName }));
 
     setCreateGroup(false);
-    setGroupName("");
+    setGroupName('');
   };
 
   useEffect(() => {}, [selectedGroup]);
 
-  if (isUsersLoading || isGroupsLoading || isGroupCreating)
-    return <ContactListSkeleton />;
+  if (isUsersLoading || isGroupsLoading || isGroupCreating) return <ContactListSkeleton />;
 
   return (
     /* RESPONSIVE: Sidebar - full width on mobile when visible, fixed width on desktop */
@@ -191,9 +188,7 @@ const Sidebar = ({ setShowSidebar }) => {
             />
             <span className="text-sm">Show online only</span>
           </label>
-          <span className="text-xs text-zinc-500">
-            ({onlineUsers.length - 1} online)
-          </span>
+          <span className="text-xs text-zinc-500">({onlineUsers.length - 1} online)</span>
         </div>
       </div>
 
@@ -227,11 +222,7 @@ const Sidebar = ({ setShowSidebar }) => {
                     className={`
                       w-full p-3 flex items-center gap-3 group relative
                       hover:bg-base-300 transition-colors
-                      ${
-                        selectedUser?._id === user._id
-                          ? "bg-base-300 ring-1 ring-base-300"
-                          : ""
-                      }
+                      ${selectedUser?._id === user._id ? 'bg-base-300 ring-1 ring-base-300' : ''}
                     `}
                   >
                     <button
@@ -244,7 +235,7 @@ const Sidebar = ({ setShowSidebar }) => {
                       {/* RESPONSIVE: Avatar sizing */}
                       <div className="relative">
                         <img
-                          src={user.profilePic || "/avatar.png"}
+                          src={user.profilePic || '/avatar.png'}
                           alt={user.name}
                           className="size-12 object-cover rounded-full"
                         />
@@ -258,12 +249,10 @@ const Sidebar = ({ setShowSidebar }) => {
 
                       {/* User info - visible on all screens */}
                       <div className="text-left min-w-0">
-                        <div className="font-medium truncate text-sm">
-                          {user.fullName}
-                        </div>
+                        <div className="font-medium truncate text-sm">{user.fullName}</div>
                         <div className="text-xs text-zinc-400">
                           {onlineUsers.includes(user._id)
-                            ? "Online"
+                            ? 'Online'
                             : formatLastSeen(user.lastSeen)}
                         </div>
                       </div>
@@ -274,10 +263,7 @@ const Sidebar = ({ setShowSidebar }) => {
                       <PinButton userId={user._id} />
                     </div>
                     <div className="opacity-0 group-hover:opacity-100 transition-opacity mt-1">
-                      <ArchiveButton
-                        userId={user._id}
-                        isArchived={isChatArchived(user._id)}
-                      />
+                      <ArchiveButton userId={user._id} isArchived={isChatArchived(user._id)} />
                     </div>
                   </div>
                 ))}
@@ -293,9 +279,7 @@ const Sidebar = ({ setShowSidebar }) => {
                 >
                   <Pin className="size-3" />
                   <span>Archived Chats</span>
-                  <span className="ml-auto text-base">
-                    {showArchived ? "▲" : "▼"}
-                  </span>
+                  <span className="ml-auto text-base">{showArchived ? '▲' : '▼'}</span>
                 </button>
 
                 {showArchived &&
@@ -303,11 +287,7 @@ const Sidebar = ({ setShowSidebar }) => {
                     <div
                       key={`archived-${user._id}`}
                       className={`w-full p-3 flex items-center gap-3 group relative hover:bg-base-300 transition-colors
-                      ${
-                        selectedUser?._id === user._id
-                          ? "bg-base-300 ring-1 ring-base-300"
-                          : ""
-                      }`}
+                      ${selectedUser?._id === user._id ? 'bg-base-300 ring-1 ring-base-300' : ''}`}
                     >
                       <button
                         onClick={() => {
@@ -318,18 +298,16 @@ const Sidebar = ({ setShowSidebar }) => {
                       >
                         <div className="relative">
                           <img
-                            src={user.profilePic || "/avatar.png"}
+                            src={user.profilePic || '/avatar.png'}
                             alt={user.name}
                             className="size-12 object-cover rounded-full"
                           />
                         </div>
 
                         <div className="text-left min-w-0">
-                          <div className="font-medium truncate text-sm">
-                            {user.fullName}
-                          </div>
+                          <div className="font-medium truncate text-sm">{user.fullName}</div>
                           <div className="text-xs text-zinc-400">
-                            Archived {isChatPinned(user._id) && "• Pinned"}
+                            Archived {isChatPinned(user._id) && '• Pinned'}
                           </div>
                         </div>
                       </button>
@@ -355,22 +333,18 @@ const Sidebar = ({ setShowSidebar }) => {
                 className={`
                   w-full p-3 flex items-center gap-3 group relative
                   hover:bg-base-300 transition-colors
-                  ${
-                    selectedUser?._id === user._id
-                      ? "bg-base-300 ring-1 ring-base-300"
-                      : ""
-                  }
+                  ${selectedUser?._id === user._id ? 'bg-base-300 ring-1 ring-base-300' : ''}
                 `}
               >
                 <button
                   onClick={() => {
-                    setSelectedUser(user), setSelectedGroup(null);
+                    (setSelectedUser(user), setSelectedGroup(null));
                   }}
                   className="flex items-center gap-3 flex-1 min-w-0"
                 >
                   <div className="relative">
                     <img
-                      src={user.profilePic || "/avatar.png"}
+                      src={user.profilePic || '/avatar.png'}
                       alt={user.name}
                       className="size-12 object-cover rounded-full"
                     />
@@ -384,13 +358,9 @@ const Sidebar = ({ setShowSidebar }) => {
 
                   {/* User info - visible on all screens */}
                   <div className="text-left min-w-0">
-                    <div className="font-medium truncate text-sm">
-                      {user.fullName}
-                    </div>
+                    <div className="font-medium truncate text-sm">{user.fullName}</div>
                     <div className="text-xs text-zinc-400">
-                      {onlineUsers.includes(user._id)
-                        ? "Online"
-                        : formatLastSeen(user.lastSeen)}
+                      {onlineUsers.includes(user._id) ? 'Online' : formatLastSeen(user.lastSeen)}
                     </div>
                   </div>
                 </button>
@@ -400,10 +370,7 @@ const Sidebar = ({ setShowSidebar }) => {
                   <PinButton userId={user._id} />
                 </div>
                 <div className="opacity-0 group-hover:opacity-100 transition-opacity mt-1">
-                  <ArchiveButton
-                    userId={user._id}
-                    isArchived={isChatArchived(user._id)}
-                  />
+                  <ArchiveButton userId={user._id} isArchived={isChatArchived(user._id)} />
                 </div>
               </div>
             ))}
@@ -426,9 +393,7 @@ const Sidebar = ({ setShowSidebar }) => {
               })}
 
             {sortedUsers.length === 0 && (
-              <div className="text-center text-zinc-500 py-4 text-sm px-2">
-                No online users
-              </div>
+              <div className="text-center text-zinc-500 py-4 text-sm px-2">No online users</div>
             )}
           </>
         )}

@@ -1,5 +1,5 @@
 // lib/db.js
-import mongoose from "mongoose";
+import mongoose from 'mongoose';
 
 // A global variable to hold the cached connection
 let cached = global.mongoose;
@@ -17,11 +17,11 @@ export const connectDB = async () => {
   // If there's no promise, create a new connection
   if (!cached.promise) {
     cached.promise = mongoose.connect(process.env.MONGODB_URI).then((mongoose) => {
-      console.log("Connected to MongoDB");
+      console.log('Connected to MongoDB');
       return mongoose;
     });
   }
-  
+
   // Await the promise to get the connection
   cached.conn = await cached.promise;
   return cached.conn;

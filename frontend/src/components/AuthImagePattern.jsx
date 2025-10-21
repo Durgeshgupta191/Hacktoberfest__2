@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect } from 'react';
 
 // =========================
 // Helper Functions
@@ -26,24 +26,23 @@ function getBestMove(board) {
   for (let i = 0; i < 9; i++) {
     if (!board[i]) {
       const copy = [...board];
-      copy[i] = "O";
-      if (calculateWinner(copy) === "O") return i;
+      copy[i] = 'O';
+      if (calculateWinner(copy) === 'O') return i;
     }
   }
 
   for (let i = 0; i < 9; i++) {
     if (!board[i]) {
       const copy = [...board];
-      copy[i] = "X";
-      if (calculateWinner(copy) === "X") return i;
+      copy[i] = 'X';
+      if (calculateWinner(copy) === 'X') return i;
     }
   }
 
   if (!board[4]) return 4;
 
   const corners = [0, 2, 6, 8].filter((i) => !board[i]);
-  if (corners.length)
-    return corners[Math.floor(Math.random() * corners.length)];
+  if (corners.length) return corners[Math.floor(Math.random() * corners.length)];
 
   const sides = [1, 3, 5, 7].filter((i) => !board[i]);
   if (sides.length) return sides[Math.floor(Math.random() * sides.length)];
@@ -57,7 +56,7 @@ function getBestMove(board) {
 const AuthImagePattern = ({ title, subtitle }) => {
   const [board, setBoard] = useState(Array(9).fill(null));
   const [isPlayerTurn, setIsPlayerTurn] = useState(true);
-  const [status, setStatus] = useState("Your turn (X)");
+  const [status, setStatus] = useState('Your turn (X)');
 
   const winner = calculateWinner(board);
 
@@ -67,7 +66,7 @@ const AuthImagePattern = ({ title, subtitle }) => {
         const bestMove = getBestMove(board);
         if (bestMove !== null) {
           const newBoard = [...board];
-          newBoard[bestMove] = "O";
+          newBoard[bestMove] = 'O';
           setBoard(newBoard);
         }
         setIsPlayerTurn(true);
@@ -78,18 +77,18 @@ const AuthImagePattern = ({ title, subtitle }) => {
 
   useEffect(() => {
     if (winner) {
-      setStatus(winner === "X" ? "You Win! 🎉" : "Computer Wins 😈");
+      setStatus(winner === 'X' ? 'You Win! 🎉' : 'Computer Wins 😈');
     } else if (board.every(Boolean)) {
       setStatus("It's a Draw 🤝");
     } else {
-      setStatus(isPlayerTurn ? "Your turn (X)" : "Computer's turn (O)");
+      setStatus(isPlayerTurn ? 'Your turn (X)' : "Computer's turn (O)");
     }
   }, [winner, isPlayerTurn, board]);
 
   const handleClick = (index) => {
     if (!isPlayerTurn || board[index] || winner) return;
     const newBoard = [...board];
-    newBoard[index] = "X";
+    newBoard[index] = 'X';
     setBoard(newBoard);
     setIsPlayerTurn(false);
   };
@@ -97,7 +96,7 @@ const AuthImagePattern = ({ title, subtitle }) => {
   const handleReset = () => {
     setBoard(Array(9).fill(null));
     setIsPlayerTurn(true);
-    setStatus("Your turn (X)");
+    setStatus('Your turn (X)');
   };
 
   return (
@@ -111,7 +110,7 @@ const AuthImagePattern = ({ title, subtitle }) => {
             key={i}
             onClick={() => handleClick(i)}
             className={`aspect-square rounded-2xl bg-gray-800 hover:bg-gray-700 flex items-center justify-center text-5xl font-bold text-white transition-all duration-200 border border-gray-700 ${
-              i % 2 === 0 ? "animate-pulse" : ""
+              i % 2 === 0 ? 'animate-pulse' : ''
             }`}
           >
             {cell}

@@ -24,7 +24,7 @@ export const subscribeToOnlineStatus = (callback) => {
   socket.on('getOnlineUsers', (users) => {
     callback(users);
   });
-  
+
   return () => {
     socket.off('getOnlineUsers');
   };

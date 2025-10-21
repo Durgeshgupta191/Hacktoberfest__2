@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+import mongoose from 'mongoose';
 
 const groupSchema = new mongoose.Schema(
   {
@@ -10,41 +10,41 @@ const groupSchema = new mongoose.Schema(
 
     description: {
       type: String,
-      default: "",
+      default: '',
       trim: true,
     },
 
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      ref: 'User',
       required: true,
     },
 
     admin: [
       {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
+        ref: 'User',
       },
     ],
 
     members: [
       {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
+        ref: 'User',
       },
     ],
 
     messages: [
       {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "Message",
+        ref: 'Message',
       },
     ],
   },
   { timestamps: true }
 );
 
-groupSchema.pre("save", function (next) {
+groupSchema.pre('save', function (next) {
   if (!this.admin || this.admin.length === 0) {
     this.admin = [this.createdBy];
   }
@@ -56,6 +56,6 @@ groupSchema.pre("save", function (next) {
   next();
 });
 
-const Group = mongoose.model("Group", groupSchema);
+const Group = mongoose.model('Group', groupSchema);
 
 export default Group;

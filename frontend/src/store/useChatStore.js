@@ -1,14 +1,19 @@
-import { create } from "zustand";
-import toast from "../lib/toast";
-import { axiosInstance } from "../lib/axios";
-import { useAuthStore } from "./useAuthStore";
-import { useEncryptionStore } from "./useEncryptionStore";
-import { socket } from "../lib/socket";
+import { create } from 'zustand';
+import toast from '../lib/toast';
+import { axiosInstance } from '../lib/axios';
+import { useAuthStore } from './useAuthStore';
+import { useEncryptionStore } from './useEncryptionStore';
+import { socket } from '../lib/socket';
 
 const getErrorMessage = (error, fallback = 'An error occurred') => {
   if (!error) return fallback;
   if (error.response && error.response.data) {
-    return error.response.data.message || error.response.data.error || JSON.stringify(error.response.data) || fallback;
+    return (
+      error.response.data.message ||
+      error.response.data.error ||
+      JSON.stringify(error.response.data) ||
+      fallback
+    );
   }
   if (error.message) return error.message;
   return String(error);
@@ -19,7 +24,7 @@ export const useChatStore = create((set, get) => ({
   users: [],
   groups: [],
   groupMessages: [],
-  addGroup: "",
+  addGroup: '',
   pinnedChats: [],
   archivedChats: [],
   selectedUser: null,
@@ -34,7 +39,7 @@ export const useChatStore = create((set, get) => ({
   getUsers: async (q) => {
     set({ isUsersLoading: true });
     try {
-      const res = await axiosInstance.get("/messages/users", {
+      const res = await axiosInstance.get('/messages/users', {
         params: q ? { q } : undefined,
       });
       const users = res.data;
@@ -53,27 +58,27 @@ export const useChatStore = create((set, get) => ({
       await get().getPinnedChats();
       await get().getArchivedChats();
     } catch (error) {
-      toast.error(getErrorMessage(error, "Failed to fetch users"));
+      toast.error(getErrorMessage(error, 'Failed to fetch users'));
     } finally {
       set({ isUsersLoading: false });
     }
   },
   getArchivedChats: async () => {
     try {
-      const res = await axiosInstance.get("/messages/archived/chats");
+      const res = await axiosInstance.get('/messages/archived/chats');
       // assuming backend returns an array of user IDs or user objects
       const archivedIds = res.data.map((chat) => (chat._id ? chat._id : chat));
       set({ archivedChats: archivedIds });
     } catch (error) {
-      console.error("Failed to fetch archived chats:", error);
+      console.error('Failed to fetch archived chats:', error);
     }
   },
   getPinnedChats: async () => {
     try {
-      const res = await axiosInstance.get("/messages/pinned/chats");
+      const res = await axiosInstance.get('/messages/pinned/chats');
       set({ pinnedChats: res.data });
     } catch (error) {
-      console.error("Error getting pinned chats:", error);
+      console.error('Error getting pinned chats:', error);
     }
   },
 
@@ -85,9 +90,9 @@ export const useChatStore = create((set, get) => ({
       if (userToPin && !pinnedChats.find((chat) => chat._id === userId)) {
         set({ pinnedChats: [...pinnedChats, userToPin] });
       }
-      toast.success("Chat pinned successfully");
+      toast.success('Chat pinned successfully');
     } catch (error) {
-      toast.error(error.response?.data?.error || "Failed to pin chat");
+      toast.error(error.response?.data?.error || 'Failed to pin chat');
     }
   },
 
@@ -96,9 +101,9 @@ export const useChatStore = create((set, get) => ({
       await axiosInstance.post(`/messages/archive/${userId}`); // backend endpoint
       const { archivedChats } = get();
       set({ archivedChats: [...archivedChats, userId] });
-      toast.success("Chat archived successfully");
+      toast.success('Chat archived successfully');
     } catch (error) {
-      toast.error(error.response?.data?.error || "Failed to archive chat");
+      toast.error(error.response?.data?.error || 'Failed to archive chat');
     }
   },
 
@@ -107,9 +112,9 @@ export const useChatStore = create((set, get) => ({
       await axiosInstance.post(`/messages/unpin/${userId}`);
       const { pinnedChats } = get();
       set({ pinnedChats: pinnedChats.filter((chat) => chat._id !== userId) });
-      toast.success("Chat unpinned successfully");
+      toast.success('Chat unpinned successfully');
     } catch (error) {
-      toast.error(error.response?.data?.error || "Failed to unpin chat");
+      toast.error(error.response?.data?.error || 'Failed to unpin chat');
     }
   },
 
@@ -118,9 +123,9 @@ export const useChatStore = create((set, get) => ({
       await axiosInstance.post(`/messages/unarchive/${userId}`); // backend endpoint
       const { archivedChats } = get();
       set({ archivedChats: archivedChats.filter((id) => id !== userId) });
-      toast.success("Chat unarchived successfully");
+      toast.success('Chat unarchived successfully');
     } catch (error) {
-      toast.error(error.response?.data?.error || "Failed to unarchive chat");
+      toast.error(error.response?.data?.error || 'Failed to unarchive chat');
     }
   },
 
@@ -147,16 +152,13 @@ export const useChatStore = create((set, get) => ({
             try {
               const decryptedText = await useEncryptionStore
                 .getState()
-                .decryptReceivedMessage(
-                  message.encryptedText,
-                  message.senderId
-                );
+                .decryptReceivedMessage(message.encryptedText, message.senderId);
               return { ...message, text: decryptedText };
             } catch (error) {
-              console.error("Failed to decrypt message:", error);
+              console.error('Failed to decrypt message:', error);
               return {
                 ...message,
-                text: "[Encrypted message - unable to decrypt]",
+                text: '[Encrypted message - unable to decrypt]',
               };
             }
           }
@@ -166,7 +168,7 @@ export const useChatStore = create((set, get) => ({
 
       set({ messages: decryptedMessages });
     } catch (error) {
-      toast.error(getErrorMessage(error, "Failed to fetch messages"));
+      toast.error(getErrorMessage(error, 'Failed to fetch messages'));
     } finally {
       set({ isMessagesLoading: false });
     }
@@ -185,13 +187,10 @@ export const useChatStore = create((set, get) => ({
         finalMessageData = { ...messageData, ...encryptionResult };
       }
 
-      const res = await axiosInstance.post(
-        `/messages/send/${selectedUser._id}`,
-        finalMessageData
-      );
+      const res = await axiosInstance.post(`/messages/send/${selectedUser._id}`, finalMessageData);
       set({ messages: [...messages, res.data] });
     } catch (error) {
-      toast.error(getErrorMessage(error, "Failed to send message"));
+      toast.error(getErrorMessage(error, 'Failed to send message'));
     }
   },
 
@@ -201,7 +200,7 @@ export const useChatStore = create((set, get) => ({
 
     const socket = useAuthStore.getState().socket;
 
-    socket.on("newMessage", async (newMessage) => {
+    socket.on('newMessage', async (newMessage) => {
       // If this message is for a different selected user, still notify
       const currentUser = useAuthStore.getState().authUser;
       // Decrypt message if it's encrypted
@@ -209,14 +208,11 @@ export const useChatStore = create((set, get) => ({
         try {
           const decryptedText = await useEncryptionStore
             .getState()
-            .decryptReceivedMessage(
-              newMessage.encryptedText,
-              newMessage.senderId
-            );
+            .decryptReceivedMessage(newMessage.encryptedText, newMessage.senderId);
           newMessage.text = decryptedText;
         } catch (error) {
-          console.error("Failed to decrypt received message:", error);
-          newMessage.text = "[Encrypted message - unable to decrypt]";
+          console.error('Failed to decrypt received message:', error);
+          newMessage.text = '[Encrypted message - unable to decrypt]';
         }
       }
 
@@ -233,55 +229,53 @@ export const useChatStore = create((set, get) => ({
       }
     });
 
-    socket.on("messageUpdated", (updated) => {
+    socket.on('messageUpdated', (updated) => {
       set({
-        messages: get().messages.map((m) =>
-          m._id === updated._id ? updated : m
-        ),
+        messages: get().messages.map((m) => (m._id === updated._id ? updated : m)),
       });
     });
 
-    socket.on("messageDeleted", ({ _id }) => {
+    socket.on('messageDeleted', ({ _id }) => {
       set({ messages: get().messages.filter((m) => m._id !== _id) });
     });
 
-    socket.on("messageReactionAdded", (updatedMessage) => {
-      console.debug("[socket] messageReactionAdded received", updatedMessage);
-      
+    socket.on('messageReactionAdded', (updatedMessage) => {
+      console.debug('[socket] messageReactionAdded received', updatedMessage);
+
       // Force a more complete refresh to ensure UI updates properly
       if (updatedMessage.groupId) {
         // For group messages
         const groupMessages = get().groupMessages || [];
-        const updatedMessages = groupMessages.map((m) => 
-          m._id === updatedMessage._id ? {...updatedMessage} : m
+        const updatedMessages = groupMessages.map((m) =>
+          m._id === updatedMessage._id ? { ...updatedMessage } : m
         );
         set({ groupMessages: [...updatedMessages] });
       } else {
         // For direct messages
         const messages = get().messages || [];
         const updatedMessages = messages.map((m) =>
-          m._id === updatedMessage._id ? {...updatedMessage} : m
+          m._id === updatedMessage._id ? { ...updatedMessage } : m
         );
         set({ messages: [...updatedMessages] });
       }
     });
 
-    socket.on("messageReactionRemoved", (updatedMessage) => {
-      console.debug("[socket] messageReactionRemoved received", updatedMessage);
-      
+    socket.on('messageReactionRemoved', (updatedMessage) => {
+      console.debug('[socket] messageReactionRemoved received', updatedMessage);
+
       // Force a more complete refresh to ensure UI updates properly
       if (updatedMessage.groupId) {
         // For group messages
         const groupMessages = get().groupMessages || [];
-        const updatedMessages = groupMessages.map((m) => 
-          m._id === updatedMessage._id ? {...updatedMessage} : m
+        const updatedMessages = groupMessages.map((m) =>
+          m._id === updatedMessage._id ? { ...updatedMessage } : m
         );
         set({ groupMessages: [...updatedMessages] });
       } else {
         // For direct messages
         const messages = get().messages || [];
         const updatedMessages = messages.map((m) =>
-          m._id === updatedMessage._id ? {...updatedMessage} : m
+          m._id === updatedMessage._id ? { ...updatedMessage } : m
         );
         set({ messages: [...updatedMessages] });
       }
@@ -290,26 +284,26 @@ export const useChatStore = create((set, get) => ({
 
   unsubscribeFromMessages: () => {
     const socket = useAuthStore.getState().socket;
-    socket.off("newMessage");
-    socket.off("messageUpdated");
-    socket.off("messageDeleted");
-    socket.off("messageReactionAdded");
-    socket.off("messageReactionRemoved");
+    socket.off('newMessage');
+    socket.off('messageUpdated');
+    socket.off('messageDeleted');
+    socket.off('messageReactionAdded');
+    socket.off('messageReactionRemoved');
   },
-  
+
   // Send voice message
   sendVoiceMessage: async ({ audioBlob, duration, recipientId, groupId }) => {
     try {
       const formData = new FormData();
-      
+
       // Add audio file
       formData.append('audio', audioBlob, 'voice-message.webm');
-      
+
       // Add other data
       formData.append('duration', duration.toString());
-      
+
       let endpoint = '';
-      
+
       // Determine the correct endpoint based on whether it's a direct or group message
       if (groupId) {
         endpoint = `/voice-messages/group/${groupId}`;
@@ -318,47 +312,47 @@ export const useChatStore = create((set, get) => ({
       } else {
         throw new Error('Either recipientId or groupId must be provided');
       }
-      
+
       // Upload voice message
       const res = await axiosInstance.post(endpoint, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
       });
-      
+
       const newMessage = res.data;
-      
+
       console.log('Voice message successfully sent:', newMessage);
-      
+
       // Update messages in state
       if (groupId) {
         console.log('Adding voice message to group messages:', {
           groupId,
           currentMessages: get().groupMessages.length,
-          newMessage
+          newMessage,
         });
-        
-        set(state => ({
+
+        set((state) => ({
           ...state,
           groupMessages: [...state.groupMessages, newMessage],
         }));
-        
+
         console.log('Updated group messages:', get().groupMessages.length);
       } else {
         console.log('Adding voice message to direct messages:', {
           recipientId,
           currentMessages: get().messages.length,
-          newMessage
+          newMessage,
         });
-        
-        set(state => ({
+
+        set((state) => ({
           ...state,
           messages: [...state.messages, newMessage],
         }));
-        
+
         console.log('Updated messages:', get().messages.length);
       }
-      
+
       return newMessage;
     } catch (error) {
       console.error('Error sending voice message:', error);
@@ -374,12 +368,10 @@ export const useChatStore = create((set, get) => ({
         text: newText,
       });
       set({
-        messages: get().messages.map((m) =>
-          m._id === messageId ? res.data : m
-        ),
+        messages: get().messages.map((m) => (m._id === messageId ? res.data : m)),
       });
     } catch (error) {
-      toast.error(error.response?.data?.error || "Failed to edit message");
+      toast.error(error.response?.data?.error || 'Failed to edit message');
     }
   },
 
@@ -388,7 +380,7 @@ export const useChatStore = create((set, get) => ({
       await axiosInstance.delete(`/messages/delete/${messageId}`);
       set({ messages: get().messages.filter((m) => m._id !== messageId) });
     } catch (error) {
-      toast.error(error.response?.data?.error || "Failed to delete message");
+      toast.error(error.response?.data?.error || 'Failed to delete message');
     }
   },
 
@@ -397,11 +389,11 @@ export const useChatStore = create((set, get) => ({
   getGroups: async () => {
     set({ isGroupsLoading: true });
     try {
-      const res = await axiosInstance.get("/groups/my-groups");
+      const res = await axiosInstance.get('/groups/my-groups');
       set({ groups: res.data.groups || [] });
     } catch (error) {
-      console.error("Error fetching groups:", error);
-      toast.error(error.response?.data?.message || "Failed to fetch groups");
+      console.error('Error fetching groups:', error);
+      toast.error(error.response?.data?.message || 'Failed to fetch groups');
     } finally {
       set({ isGroupsLoading: false });
     }
@@ -410,17 +402,17 @@ export const useChatStore = create((set, get) => ({
   addGroup: async (groupData) => {
     set({ isGroupCreating: true });
     try {
-      const res = await axiosInstance.post("/groups/create", groupData, {
-        headers: { "Content-Type": "application/json" },
+      const res = await axiosInstance.post('/groups/create', groupData, {
+        headers: { 'Content-Type': 'application/json' },
       });
 
-      toast.success(res.data.message || "Group created successfully!");
+      toast.success(res.data.message || 'Group created successfully!');
 
       await get().getGroups();
       return res.data.group;
     } catch (error) {
-      console.error("Error creating group:", error);
-      toast.error(error.response?.data?.message || "Failed to create group");
+      console.error('Error creating group:', error);
+      toast.error(error.response?.data?.message || 'Failed to create group');
     } finally {
       set({ isGroupCreating: false });
     }
@@ -432,10 +424,8 @@ export const useChatStore = create((set, get) => ({
       const res = await axiosInstance.get(`/group-messages/${groupId}`);
       set({ groupMessages: res.data.messages || [] });
     } catch (error) {
-      console.error("Error fetching group messages:", error);
-      toast.error(
-        error.response?.data?.message || "Failed to load group messages"
-      );
+      console.error('Error fetching group messages:', error);
+      toast.error(error.response?.data?.message || 'Failed to load group messages');
     } finally {
       set({ isGroupMessagesLoading: false });
     }
@@ -443,7 +433,7 @@ export const useChatStore = create((set, get) => ({
 
   // Notify user about an incoming message (one-to-one or group)
   notifyNewMessage: async (message, { isGroup = false } = {}) => {
-    console.debug("[notifyNewMessage] called", {
+    console.debug('[notifyNewMessage] called', {
       messageId: message._id,
       isGroup,
     });
@@ -455,31 +445,31 @@ export const useChatStore = create((set, get) => ({
 
       // Resolve sender and title
       const sender = get().users.find((u) => u._id === message.senderId) || {};
-      const senderName = sender.name || sender.username || "Someone";
+      const senderName = sender.name || sender.username || 'Someone';
       const title = isGroup
-        ? get().groups.find((g) => g._id === message.groupId)?.name || "Group"
+        ? get().groups.find((g) => g._id === message.groupId)?.name || 'Group'
         : senderName;
 
       // Try to obtain a short snippet. If encrypted, attempt decryption and fall back to marker
-      let snippet = "";
+      let snippet = '';
       if (message.isEncrypted && message.encryptedText) {
         try {
           snippet = await useEncryptionStore
             .getState()
             .decryptReceivedMessage(message.encryptedText, message.senderId);
         } catch (e) {
-          snippet = "[Encrypted message]";
+          snippet = '[Encrypted message]';
         }
       } else {
-        snippet = message.text || "";
+        snippet = message.text || '';
       }
 
       // normalize snippet
-      snippet = String(snippet).replace(/\s+/g, " ").trim().slice(0, 120);
+      snippet = String(snippet).replace(/\s+/g, ' ').trim().slice(0, 120);
       const body = isGroup ? `${senderName}: ${snippet}` : snippet;
 
       // Show a concise info toast. The toast wrapper will dedupe identical messages.
-      console.debug("[notifyNewMessage] showing toast", { title, body });
+      console.debug('[notifyNewMessage] showing toast', { title, body });
       if (body) {
         toast.info(`${title} — ${body}`, { duration: 4000 });
       } else {
@@ -489,11 +479,11 @@ export const useChatStore = create((set, get) => ({
       // Also show a native desktop notification when permitted so user receives
       // notifications even when interacting with other pages in the app.
       try {
-        if (typeof window !== "undefined" && "Notification" in window) {
+        if (typeof window !== 'undefined' && 'Notification' in window) {
           const showNative = async () => {
-            if (Notification.permission === "granted") {
+            if (Notification.permission === 'granted') {
               const n = new Notification(title, {
-                body: body || "New message",
+                body: body || 'New message',
               });
               // Bring app to focus when user clicks notification
               n.onclick = () => {
@@ -501,11 +491,11 @@ export const useChatStore = create((set, get) => ({
                   window.focus();
                 } catch (e) {}
               };
-            } else if (Notification.permission === "default") {
+            } else if (Notification.permission === 'default') {
               const p = await Notification.requestPermission();
-              if (p === "granted") {
+              if (p === 'granted') {
                 const n = new Notification(title, {
-                  body: body || "New message",
+                  body: body || 'New message',
                 });
                 n.onclick = () => {
                   try {
@@ -516,32 +506,25 @@ export const useChatStore = create((set, get) => ({
             }
           };
           // don't await to avoid blocking UI
-          showNative().catch((e) =>
-            console.warn("native notification failed", e)
-          );
+          showNative().catch((e) => console.warn('native notification failed', e));
         }
       } catch (e) {
-        console.warn("notifyNewMessage: native notification error", e);
+        console.warn('notifyNewMessage: native notification error', e);
       }
     } catch (err) {
       // never throw from notification helper
-      console.error("notifyNewMessage error", err);
+      console.error('notifyNewMessage error', err);
     }
   },
 
   sendGroupMessage: async (groupId, messageData) => {
     try {
-      const res = await axiosInstance.post(
-        `/group-messages/send/${groupId}`,
-        messageData
-      );
+      const res = await axiosInstance.post(`/group-messages/send/${groupId}`, messageData);
       // Immediately reflect the sent message for the sender to avoid waiting for socket echo
       // set({ groupMessages: [...get().groupMessages, res.data] });
     } catch (error) {
-      console.error("Error sending group message:", error);
-      toast.error(
-        error.response?.data?.message || "Failed to send group message"
-      );
+      console.error('Error sending group message:', error);
+      toast.error(error.response?.data?.message || 'Failed to send group message');
     }
   },
 
@@ -549,17 +532,16 @@ export const useChatStore = create((set, get) => ({
     const { selectedGroup } = get();
     if (!selectedGroup) return;
     const socket = useAuthStore.getState().socket;
-    
-    // Join the group room for socket events
-    socket.emit("joinGroup", selectedGroup._id);
 
-    socket.on("newGroupMessage", (newMessage) => {
+    // Join the group room for socket events
+    socket.emit('joinGroup', selectedGroup._id);
+
+    socket.on('newGroupMessage', (newMessage) => {
       const { groupMessages } = get();
       const currentUser = useAuthStore.getState().authUser;
 
       // If this message belongs to another group, still save it and notify
-      const isForSelected =
-        selectedGroup && newMessage.groupId === selectedGroup._id;
+      const isForSelected = selectedGroup && newMessage.groupId === selectedGroup._id;
 
       if (newMessage.senderId === currentUser._id) return;
 
@@ -574,9 +556,9 @@ export const useChatStore = create((set, get) => ({
         get().notifyNewMessage(newMessage, { isGroup: true });
       }
     });
-    
-    socket.on("messageReactionAdded", (updatedMessage) => {
-      console.debug("[socket] messageReactionAdded received in group", updatedMessage);
+
+    socket.on('messageReactionAdded', (updatedMessage) => {
+      console.debug('[socket] messageReactionAdded received in group', updatedMessage);
       set({
         groupMessages: get().groupMessages.map((m) =>
           m._id === updatedMessage._id ? updatedMessage : m
@@ -584,8 +566,8 @@ export const useChatStore = create((set, get) => ({
       });
     });
 
-    socket.on("messageReactionRemoved", (updatedMessage) => {
-      console.debug("[socket] messageReactionRemoved received in group", updatedMessage);
+    socket.on('messageReactionRemoved', (updatedMessage) => {
+      console.debug('[socket] messageReactionRemoved received in group', updatedMessage);
       set({
         groupMessages: get().groupMessages.map((m) =>
           m._id === updatedMessage._id ? updatedMessage : m
@@ -596,9 +578,9 @@ export const useChatStore = create((set, get) => ({
 
   unsubscribeFromGroupMessages: () => {
     const socket = useAuthStore.getState().socket;
-    socket.off("newGroupMessage");
-    socket.off("messageReactionAdded");
-    socket.off("messageReactionRemoved");
+    socket.off('newGroupMessage');
+    socket.off('messageReactionAdded');
+    socket.off('messageReactionRemoved');
   },
 
   addGroupMembers: async (groupId, userIds) => {
@@ -606,23 +588,21 @@ export const useChatStore = create((set, get) => ({
       const res = await axiosInstance.post(
         `/groups/${groupId}/add-members`,
         { userIds },
-        { headers: { "Content-Type": "application/json" } }
+        { headers: { 'Content-Type': 'application/json' } }
       );
 
-      toast.success(res.data.message || "Members added successfully!");
+      toast.success(res.data.message || 'Members added successfully!');
 
       set((state) => ({
         groups: state.groups.map((group) =>
-          group._id === groupId
-            ? { ...group, members: res.data.members }
-            : group
+          group._id === groupId ? { ...group, members: res.data.members } : group
         ),
       }));
 
       return res.data;
     } catch (error) {
-      console.error("Error adding members:", error);
-      toast.error(error.response?.data?.message || "Failed to add members");
+      console.error('Error adding members:', error);
+      toast.error(error.response?.data?.message || 'Failed to add members');
     }
   },
 
@@ -631,22 +611,20 @@ export const useChatStore = create((set, get) => ({
       const res = await axiosInstance.post(
         `/groups/${groupId}/remove-members`,
         { userIds },
-        { headers: { "Content-Type": "application/json" } }
+        { headers: { 'Content-Type': 'application/json' } }
       );
 
-      toast.success(res.data.message || "Members removed successfully!");
+      toast.success(res.data.message || 'Members removed successfully!');
 
       set((state) => ({
         groups: state.groups.map((group) =>
-          group._id === groupId
-            ? { ...group, members: res.data.members }
-            : group
+          group._id === groupId ? { ...group, members: res.data.members } : group
         ),
       }));
       return res.data;
     } catch (error) {
-      console.error("Error removing members:", error);
-      toast.error(error.response?.data?.message || "Failed to remove members");
+      console.error('Error removing members:', error);
+      toast.error(error.response?.data?.message || 'Failed to remove members');
     }
   },
 
@@ -655,22 +633,20 @@ export const useChatStore = create((set, get) => ({
       const res = await axiosInstance.post(
         `/groups/${groupId}/leave-group`,
         {},
-        { headers: { "Content-Type": "application/json" } }
+        { headers: { 'Content-Type': 'application/json' } }
       );
 
-      toast.success(res.data.message || "You have left the group!");
+      toast.success(res.data.message || 'You have left the group!');
       set((state) => ({
         groups: state.groups.map((group) =>
-          group._id === groupId
-            ? { ...group, members: res.data.members }
-            : group
+          group._id === groupId ? { ...group, members: res.data.members } : group
         ),
       }));
 
       return res.data;
     } catch (error) {
-      console.error("Error leaving group:", error);
-      toast.error(error.response?.data?.message || "Failed to leave group");
+      console.error('Error leaving group:', error);
+      toast.error(error.response?.data?.message || 'Failed to leave group');
     }
   },
 
@@ -679,10 +655,10 @@ export const useChatStore = create((set, get) => ({
       const res = await axiosInstance.post(
         `/groups/${groupId}/add-admin`,
         { userIds },
-        { headers: { "Content-Type": "application/json" } }
+        { headers: { 'Content-Type': 'application/json' } }
       );
 
-      toast.success(res.data.message || "Admin added successfully!");
+      toast.success(res.data.message || 'Admin added successfully!');
 
       set((state) => ({
         groups: state.groups.map((group) =>
@@ -692,8 +668,8 @@ export const useChatStore = create((set, get) => ({
 
       return res.data;
     } catch (error) {
-      console.error("Error adding admins:", error);
-      toast.error(error.response?.data?.message || "Failed to add admins");
+      console.error('Error adding admins:', error);
+      toast.error(error.response?.data?.message || 'Failed to add admins');
     }
   },
 
@@ -702,10 +678,10 @@ export const useChatStore = create((set, get) => ({
       const res = await axiosInstance.post(
         `/groups/${groupId}/remove-admin`,
         { userIds },
-        { headers: { "Content-Type": "application/json" } }
+        { headers: { 'Content-Type': 'application/json' } }
       );
 
-      toast.success(res.data.message || "Admin removed successfully!");
+      toast.success(res.data.message || 'Admin removed successfully!');
 
       set((state) => ({
         groups: state.groups.map((group) =>
@@ -715,40 +691,39 @@ export const useChatStore = create((set, get) => ({
 
       return res.data;
     } catch (error) {
-      console.error("Error removing admins:", error);
-      toast.error(error.response?.data?.message || "Failed to remove admins");
+      console.error('Error removing admins:', error);
+      toast.error(error.response?.data?.message || 'Failed to remove admins');
     }
   },
 
   removeGroupLocally: (groupId) =>
     set((state) => ({
       groups: state.groups.filter((g) => g._id !== groupId),
-      selectedGroup:
-        state.selectedGroup?._id === groupId ? null : state.selectedGroup,
+      selectedGroup: state.selectedGroup?._id === groupId ? null : state.selectedGroup,
     })),
-    
+
   sendVoiceMessage: async ({ audioBlob, duration, recipientId, groupId }) => {
     try {
       // Create a FormData object to send the audio file
       const formData = new FormData();
       formData.append('audio', audioBlob, 'voice-message.webm');
       formData.append('duration', duration.toString());
-      
+
       let response;
-      
+
       // Determine if this is a direct message or group message
       if (groupId) {
         // For group messages
         response = await axiosInstance.post(`/voice-messages/group/${groupId}`, formData, {
-          headers: { 'Content-Type': 'multipart/form-data' }
+          headers: { 'Content-Type': 'multipart/form-data' },
         });
       } else {
         // For direct messages
         response = await axiosInstance.post(`/voice-messages/${recipientId}`, formData, {
-          headers: { 'Content-Type': 'multipart/form-data' }
+          headers: { 'Content-Type': 'multipart/form-data' },
         });
       }
-      
+
       return response.data;
     } catch (error) {
       console.error('Error sending voice message:', error);

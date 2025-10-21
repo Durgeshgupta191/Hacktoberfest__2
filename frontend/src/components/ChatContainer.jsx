@@ -1,17 +1,17 @@
-import { useChatStore } from "../store/useChatStore";
-import { useEffect, useRef, useState } from "react";
+import { useChatStore } from '../store/useChatStore';
+import { useEffect, useRef, useState } from 'react';
 
-import ChatHeader from "./ChatHeader";
-import MessageInput from "./MessageInput";
-import MessageSkeleton from "./skeletons/MessageSkeleton";
-import MessageReactions from "./MessageReactions";
-import MessageActions from "./MessageActions";
-import { useAuthStore } from "../store/useAuthStore";
-import { formatMessageTime, formatMessageDate, shouldShowDateSeparator } from "../lib/utils";
-import { VoicePlayer } from "./VoiceMessage";
-import "./Chat.css";
+import ChatHeader from './ChatHeader';
+import MessageInput from './MessageInput';
+import MessageSkeleton from './skeletons/MessageSkeleton';
+import MessageReactions from './MessageReactions';
+import MessageActions from './MessageActions';
+import { useAuthStore } from '../store/useAuthStore';
+import { formatMessageTime, formatMessageDate, shouldShowDateSeparator } from '../lib/utils';
+import { VoicePlayer } from './VoiceMessage';
+import './Chat.css';
 
-const ChatContainer = ({showSidebar, setShowSidebar}) => {
+const ChatContainer = ({ showSidebar, setShowSidebar }) => {
   const {
     messages,
     getMessages,
@@ -30,16 +30,11 @@ const ChatContainer = ({showSidebar, setShowSidebar}) => {
     getMessages(selectedUser._id);
     subscribeToMessages();
     return () => unsubscribeFromMessages();
-  }, [
-    selectedUser._id,
-    getMessages,
-    subscribeToMessages,
-    unsubscribeFromMessages,
-  ]);
+  }, [selectedUser._id, getMessages, subscribeToMessages, unsubscribeFromMessages]);
 
   useEffect(() => {
     if (messageEndRef.current && messages) {
-      messageEndRef.current.scrollIntoView({ behavior: "smooth" });
+      messageEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages]);
 
@@ -48,7 +43,7 @@ const ChatContainer = ({showSidebar, setShowSidebar}) => {
     try {
       await editMessage(message._id, message.text);
     } catch (error) {
-      console.error("Failed to edit message:", error);
+      console.error('Failed to edit message:', error);
     }
   };
 
@@ -57,7 +52,7 @@ const ChatContainer = ({showSidebar, setShowSidebar}) => {
     try {
       await deleteMessage(messageId);
     } catch (error) {
-      console.error("Failed to delete message:", error);
+      console.error('Failed to delete message:', error);
     }
   };
 
@@ -80,10 +75,7 @@ const ChatContainer = ({showSidebar, setShowSidebar}) => {
             {messages.map((message, index) => {
               const isOwnMessage = message.senderId === authUser._id;
               // Check if we should show a date separator
-              const showDateSeparator = shouldShowDateSeparator(
-                messages,
-                index
-              );
+              const showDateSeparator = shouldShowDateSeparator(messages, index);
               return (
                 <div key={message._id}>
                   {/* Date separator */}
@@ -97,56 +89,53 @@ const ChatContainer = ({showSidebar, setShowSidebar}) => {
 
                   {/* RESPONSIVE: Message container with proper alignment and sizing */}
                   <div className="message-container">
-                    <div className={`flex ${isOwnMessage ? "message-right" : "message-left"}`}>
+                    <div className={`flex ${isOwnMessage ? 'message-right' : 'message-left'}`}>
                       {/* Profile picture */}
                       {!isOwnMessage && (
                         <div className="avatar-container">
                           <div className="avatar-image">
                             <img
                               alt="User avatar"
-                              src={selectedUser?.profilePic || "https://ui-avatars.com/api/?name=" + (selectedUser?.fullName || "User")}
+                              src={
+                                selectedUser?.profilePic ||
+                                'https://ui-avatars.com/api/?name=' +
+                                  (selectedUser?.fullName || 'User')
+                              }
                             />
                           </div>
                         </div>
                       )}
-                      
+
                       <div className="message-content">
                         {/* Message header with name and time */}
                         <div className="message-header">
-                          {isOwnMessage ? "You" : selectedUser.fullName}
-                          <time className="ml-2">
-                            {formatMessageTime(message.createdAt)}
-                          </time>
+                          {isOwnMessage ? 'You' : selectedUser.fullName}
+                          <time className="ml-2">{formatMessageTime(message.createdAt)}</time>
                         </div>
 
                         {/* Message bubble */}
-                        <div className={`message-bubble ${isOwnMessage ? "sender-bubble" : "receiver-bubble"}`}>
+                        <div
+                          className={`message-bubble ${isOwnMessage ? 'sender-bubble' : 'receiver-bubble'}`}
+                        >
                           {message.image && (
-                            <img
-                              src={message.image}
-                              alt="Attachment"
-                              className="message-image"
-                            />
+                            <img src={message.image} alt="Attachment" className="message-image" />
                           )}
                           {message.text && <p>{message.text}</p>}
                           {message.voiceMessage && (
                             <>
-                              <VoicePlayer 
-                                url={message.voiceMessage} 
-                                duration={message.voiceDuration || 0} 
-                                waveform={message.voiceWaveform || []} 
+                              <VoicePlayer
+                                url={message.voiceMessage}
+                                duration={message.voiceDuration || 0}
+                                waveform={message.voiceWaveform || []}
                               />
                               {/* For debugging */}
                               {console.log('Rendering voice message:', message.voiceMessage)}
                             </>
                           )}
                         </div>
-                        
+
                         <div className="message-actions">
-                          <MessageReactions 
-                            message={message} 
-                            isOwnMessage={isOwnMessage} 
-                          />
+                          <MessageReactions message={message} isOwnMessage={isOwnMessage} />
                           {isOwnMessage && (
                             <MessageActions
                               message={message}
@@ -156,13 +145,16 @@ const ChatContainer = ({showSidebar, setShowSidebar}) => {
                           )}
                         </div>
                       </div>
-                      
+
                       {isOwnMessage && (
                         <div className="avatar-container">
                           <div className="avatar-image">
                             <img
                               alt="User avatar"
-                              src={authUser?.profilePic || "https://ui-avatars.com/api/?name=" + (authUser?.fullName || "User")}
+                              src={
+                                authUser?.profilePic ||
+                                'https://ui-avatars.com/api/?name=' + (authUser?.fullName || 'User')
+                              }
                             />
                           </div>
                         </div>

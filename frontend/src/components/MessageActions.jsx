@@ -4,12 +4,12 @@ import './Chat.css';
 
 const MessageActions = ({ message, onEdit, onDelete }) => {
   const [showTooltip, setShowTooltip] = useState(false);
-  
+
   // Calculate if message is still editable (within 2 minutes)
   const twoMinutesMs = 2 * 60 * 1000;
   const messageTime = new Date(message.createdAt).getTime();
   const isEditable = Date.now() - messageTime <= twoMinutesMs;
-  
+
   const handleEditClick = () => {
     if (isEditable) {
       onEdit(message);
@@ -21,25 +21,25 @@ const MessageActions = ({ message, onEdit, onDelete }) => {
 
   return (
     <div className="flex ml-2 gap-1">
-      <button 
+      <button
         className="reaction-button"
         onClick={handleEditClick}
-        title={isEditable ? "Edit message" : "Can only edit within 2 minutes"}
+        title={isEditable ? 'Edit message' : 'Can only edit within 2 minutes'}
       >
-        <Edit size={14} color={isEditable ? "currentColor" : "#888"} />
+        <Edit size={14} color={isEditable ? 'currentColor' : '#888'} />
       </button>
-      
-      <button 
+
+      <button
         className="reaction-button text-error"
         onClick={() => onDelete(message._id)}
         title="Delete message"
       >
         <Trash2 size={14} />
       </button>
-      
+
       {/* Info button with tooltip */}
       <div className="relative">
-        <button 
+        <button
           className="reaction-button"
           onMouseEnter={() => setShowTooltip(true)}
           onMouseLeave={() => setShowTooltip(false)}
@@ -47,7 +47,7 @@ const MessageActions = ({ message, onEdit, onDelete }) => {
         >
           <Info size={14} />
         </button>
-        
+
         {showTooltip && (
           <div className="absolute bottom-full right-0 mb-2 p-2 bg-base-300 text-xs rounded-md shadow-lg w-48 z-10">
             Messages can only be edited:

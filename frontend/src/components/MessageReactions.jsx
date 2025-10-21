@@ -20,27 +20,27 @@ const MessageReactions = ({ message, isOwnMessage }) => {
     if (message.reactions && message.reactions.length > 0) {
       const counts = {};
       const userReactions = [];
-      
-      message.reactions.forEach(reaction => {
+
+      message.reactions.forEach((reaction) => {
         if (!counts[reaction.emoji]) {
           counts[reaction.emoji] = {
             count: 0,
-            users: []
+            users: [],
           };
         }
-        
+
         counts[reaction.emoji].count += 1;
         counts[reaction.emoji].users.push({
           id: reaction.userId?._id || reaction.userId,
           name: reaction.userId?.fullName || 'User',
-          profilePic: reaction.userId?.profilePic
+          profilePic: reaction.userId?.profilePic,
         });
-        
+
         if (reaction.userId?._id === authUser?._id || reaction.userId === authUser?._id) {
           userReactions.push(reaction.emoji);
         }
       });
-      
+
       setReactionCounts(counts);
       setExistingReactions(userReactions);
     } else {
@@ -68,18 +68,18 @@ const MessageReactions = ({ message, isOwnMessage }) => {
     try {
       // Optimistic UI update for better user experience
       const isRemoving = existingReactions.includes(emoji);
-      
+
       if (isRemoving) {
         // Remove reaction locally
-        setExistingReactions(prev => prev.filter(e => e !== emoji));
-        
+        setExistingReactions((prev) => prev.filter((e) => e !== emoji));
+
         // Update counts
-        setReactionCounts(prev => {
-          const newCounts = {...prev};
+        setReactionCounts((prev) => {
+          const newCounts = { ...prev };
           if (newCounts[emoji]) {
             newCounts[emoji].count -= 1;
-            newCounts[emoji].users = newCounts[emoji].users.filter(u => u.id !== authUser._id);
-            
+            newCounts[emoji].users = newCounts[emoji].users.filter((u) => u.id !== authUser._id);
+
             if (newCounts[emoji].count === 0) {
               delete newCounts[emoji];
             }
@@ -88,11 +88,11 @@ const MessageReactions = ({ message, isOwnMessage }) => {
         });
       } else {
         // Add reaction locally
-        setExistingReactions(prev => [...prev, emoji]);
-        
+        setExistingReactions((prev) => [...prev, emoji]);
+
         // Update counts
-        setReactionCounts(prev => {
-          const newCounts = {...prev};
+        setReactionCounts((prev) => {
+          const newCounts = { ...prev };
           if (!newCounts[emoji]) {
             newCounts[emoji] = { count: 0, users: [] };
           }
@@ -100,26 +100,26 @@ const MessageReactions = ({ message, isOwnMessage }) => {
           newCounts[emoji].users.push({
             id: authUser._id,
             name: authUser.fullName || 'You',
-            profilePic: authUser.profilePic
+            profilePic: authUser.profilePic,
           });
           return newCounts;
         });
       }
-      
+
       // Send to server
       await axiosInstance.post(`/messages/reaction/${message._id}`, { emoji });
       setShowEmojiPicker(false);
     } catch (error) {
       console.error('Error adding reaction:', error);
       toast.error('Failed to add reaction');
-      
+
       // Revert optimistic update on error
       // Re-fetch reactions from the message object
       if (message.reactions && message.reactions.length > 0) {
         const counts = {};
         const userReactions = [];
-        
-        message.reactions.forEach(reaction => {
+
+        message.reactions.forEach((reaction) => {
           if (!counts[reaction.emoji]) {
             counts[reaction.emoji] = { count: 0, users: [] };
           }
@@ -127,14 +127,14 @@ const MessageReactions = ({ message, isOwnMessage }) => {
           counts[reaction.emoji].users.push({
             id: reaction.userId?._id || reaction.userId,
             name: reaction.userId?.fullName || 'User',
-            profilePic: reaction.userId?.profilePic
+            profilePic: reaction.userId?.profilePic,
           });
-          
+
           if (reaction.userId?._id === authUser?._id || reaction.userId === authUser?._id) {
             userReactions.push(reaction.emoji);
           }
         });
-        
+
         setReactionCounts(counts);
         setExistingReactions(userReactions);
       }
@@ -146,8 +146,8 @@ const MessageReactions = ({ message, isOwnMessage }) => {
     return Object.keys(reactionCounts).map((emoji) => {
       const reaction = reactionCounts[emoji];
       const isSelected = existingReactions.includes(emoji);
-      const userNames = reaction.users.map(u => u.name).join(', ');
-      
+      const userNames = reaction.users.map((u) => u.name).join(', ');
+
       return (
         <button
           key={emoji}
@@ -166,31 +166,29 @@ const MessageReactions = ({ message, isOwnMessage }) => {
     <div className="message-actions">
       {/* Display reaction counts */}
       {Object.keys(reactionCounts).length > 0 && (
-        <div className="flex flex-wrap gap-1 mr-2">
-          {renderReactionCounts()}
-        </div>
+        <div className="flex flex-wrap gap-1 mr-2">{renderReactionCounts()}</div>
       )}
 
       {/* Reaction button */}
       <div className="relative">
-        <button 
+        <button
           className="reaction-button"
           onClick={() => setShowEmojiPicker(!showEmojiPicker)}
           title="Add reaction"
         >
           <SmilePlus size={14} />
         </button>
-        
+
         {/* Emoji picker */}
         {showEmojiPicker && (
-          <div 
-            ref={emojiPickerRef} 
+          <div
+            ref={emojiPickerRef}
             className={`absolute ${isOwnMessage ? 'left-0' : 'right-0'} top-6 bg-base-200 shadow-lg rounded-lg p-2 z-20`}
           >
             <div className="flex flex-wrap gap-1 max-w-48">
-              {COMMON_EMOJIS.map(emoji => (
-                <button 
-                  key={emoji} 
+              {COMMON_EMOJIS.map((emoji) => (
+                <button
+                  key={emoji}
                   className="btn btn-ghost btn-xs p-1 hover:bg-base-300"
                   onClick={() => handleReactionClick(emoji)}
                 >

@@ -1,5 +1,5 @@
-import {v2 as cloudinary} from "cloudinary";
-import {config} from 'dotenv';
+import { v2 as cloudinary } from 'cloudinary';
+import { config } from 'dotenv';
 
 config();
 
@@ -12,15 +12,19 @@ const apiSecret = process.env.CLOUDINARY_API_SECRET;
 const hasCloudinaryConfig = cloudName && apiKey && apiSecret;
 
 if (hasCloudinaryConfig) {
-  console.log("Configuring Cloudinary with cloud name:", cloudName);
+  console.log('Configuring Cloudinary with cloud name:', cloudName);
   cloudinary.config({
     cloud_name: cloudName,
     api_key: apiKey,
     api_secret: apiSecret,
   });
 } else {
-  console.error("⚠️ Cloudinary environment variables are not set properly. Voice message functionality will be disabled.");
-  console.error("To enable voice messages, please set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET in your .env file.");
+  console.error(
+    '⚠️ Cloudinary environment variables are not set properly. Voice message functionality will be disabled.'
+  );
+  console.error(
+    'To enable voice messages, please set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET in your .env file.'
+  );
 }
 
 export default cloudinary;

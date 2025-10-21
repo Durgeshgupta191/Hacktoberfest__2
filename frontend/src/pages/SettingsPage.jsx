@@ -1,11 +1,9 @@
-import { THEMES } from "../constants/index.js";
-import { useThemeStore } from "../store/useThemeStore.js";
-import { Send } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import { useAuthStore } from "../store/useAuthStore";
-import {
-  ArrowLeft,
-} from "lucide-react";
+import { THEMES } from '../constants/index.js';
+import { useThemeStore } from '../store/useThemeStore.js';
+import { Send } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { useAuthStore } from '../store/useAuthStore';
+import { ArrowLeft } from 'lucide-react';
 
 const PREVIEW_MESSAGES = [
   { id: 1, content: "Hey! How's it going?", isSent: false },
@@ -21,10 +19,7 @@ const SettingsPage = () => {
     <div className="h-screen container mx-auto px-4 pt-20 max-w-5xl">
       <div className="space-y-6">
         <div className="flex items-center mb-4">
-          <button
-            onClick={() => navigate(-1)}
-            className="btn btn-ghost btn-circle"
-          >
+          <button onClick={() => navigate(-1)} className="btn btn-ghost btn-circle">
             <ArrowLeft className="w-5 h-5" />
           </button>
           <h1 className="text-2xl font-bold ml-2">Settings</h1>
@@ -64,7 +59,7 @@ const SettingsPage = () => {
               key={t}
               className={`
                 group flex flex-col items-center gap-1.5 p-2 rounded-lg transition-colors
-                ${theme === t ? "bg-base-200" : "hover:bg-base-200/50"}
+                ${theme === t ? 'bg-base-200' : 'hover:bg-base-200/50'}
               `}
               onClick={() => setTheme(t)}
             >
@@ -108,19 +103,19 @@ const SettingsPage = () => {
                   {PREVIEW_MESSAGES.map((message) => (
                     <div
                       key={message.id}
-                      className={`flex ${message.isSent ? "justify-end" : "justify-start"}`}
+                      className={`flex ${message.isSent ? 'justify-end' : 'justify-start'}`}
                     >
                       <div
                         className={`
                           max-w-[80%] rounded-xl p-3 shadow-sm
-                          ${message.isSent ? "bg-primary text-primary-content" : "bg-base-200"}
+                          ${message.isSent ? 'bg-primary text-primary-content' : 'bg-base-200'}
                         `}
                       >
                         <p className="text-sm">{message.content}</p>
                         <p
                           className={`
                             text-[10px] mt-1.5
-                            ${message.isSent ? "text-primary-content/70" : "text-base-content/70"}
+                            ${message.isSent ? 'text-primary-content/70' : 'text-base-content/70'}
                           `}
                         >
                           12:00 PM

@@ -1,40 +1,35 @@
-import { X, Users } from "lucide-react";
-import { useState } from "react";
-import { useChatStore } from "../store/useChatStore";
-import { axiosInstance } from "../lib/axios";
-import toast from "../lib/toast";
+import { X, Users } from 'lucide-react';
+import { useState } from 'react';
+import { useChatStore } from '../store/useChatStore';
+import { axiosInstance } from '../lib/axios';
+import toast from '../lib/toast';
 
 const GroupInfoPopup = ({ group, onClose }) => {
-  const [description, setDescription] = useState(group.description || "");
+  const [description, setDescription] = useState(group.description || '');
   const [isEditing, setIsEditing] = useState(false);
   const { getGroups } = useChatStore();
 
   const handleSave = async () => {
     try {
       await axiosInstance.put(`/groups/${group._id}/description`, { description });
-      toast.success("Description updated");
+      toast.success('Description updated');
       await getGroups(); // refresh group data
       setIsEditing(false);
     } catch (error) {
-      toast.error(error.response?.data?.message || "Failed to update description");
+      toast.error(error.response?.data?.message || 'Failed to update description');
     }
   };
 
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex justify-center items-center z-50">
       <div className="bg-base-100 rounded-2xl shadow-lg p-5 w-[95%] max-w-md relative">
-        <button
-          onClick={onClose}
-          className="absolute top-3 right-3 text-gray-500 hover:text-white"
-        >
+        <button onClick={onClose} className="absolute top-3 right-3 text-gray-500 hover:text-white">
           <X />
         </button>
 
         <div className="text-center mb-4">
           <h2 className="text-lg font-semibold">{group.name}</h2>
-          <p className="text-sm text-gray-400">
-            {group.members?.length || 0} members
-          </p>
+          <p className="text-sm text-gray-400">{group.members?.length || 0} members</p>
         </div>
 
         {/* Description */}
@@ -47,7 +42,7 @@ const GroupInfoPopup = ({ group, onClose }) => {
               onChange={(e) => setDescription(e.target.value)}
             />
           ) : (
-            <p className="text-sm text-gray-300">{description || "No description"}</p>
+            <p className="text-sm text-gray-300">{description || 'No description'}</p>
           )}
           <div className="mt-2 flex justify-end gap-2">
             {isEditing ? (
@@ -55,18 +50,12 @@ const GroupInfoPopup = ({ group, onClose }) => {
                 <button className="btn btn-sm btn-primary" onClick={handleSave}>
                   Save
                 </button>
-                <button
-                  className="btn btn-sm btn-ghost"
-                  onClick={() => setIsEditing(false)}
-                >
+                <button className="btn btn-sm btn-ghost" onClick={() => setIsEditing(false)}>
                   Cancel
                 </button>
               </>
             ) : (
-              <button
-                className="btn btn-sm btn-outline"
-                onClick={() => setIsEditing(true)}
-              >
+              <button className="btn btn-sm btn-outline" onClick={() => setIsEditing(true)}>
                 Edit
               </button>
             )}
@@ -81,11 +70,8 @@ const GroupInfoPopup = ({ group, onClose }) => {
           <ul className="max-h-48 overflow-y-auto">
             {group.members?.length > 0 ? (
               group.members.map((member) => (
-                <li
-                  key={member._id || member}
-                  className="text-sm py-1 border-b border-base-300"
-                >
-                  {member.fullName || member.name || "Unknown"}
+                <li key={member._id || member} className="text-sm py-1 border-b border-base-300">
+                  {member.fullName || member.name || 'Unknown'}
                 </li>
               ))
             ) : (
