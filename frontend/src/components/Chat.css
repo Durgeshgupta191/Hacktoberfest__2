@@ -115,3 +115,39 @@
   flex: 1;
   border-bottom: 1px solid rgba(128, 128, 128, 0.2);
 }
+
+/* Message status ticks (single/double/read) */
+
+.message-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px; /* tighten gap between ticks */
+  margin-left: 8px;
+}
+
+.tick {
+  width: 14px;
+  height: 14px;
+  color: rgba(102, 102, 102, 1); /* neutral grey for delivered/unseen */
+}
+
+/* Pull the second tick slightly left so two ticks appear close/overlapped like WhatsApp */
+.tick + .tick {
+  margin-left: -4px;
+}
+
+.sender-bubble + .message-actions ~ .message-status .tick,
+.message-header .tick {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+/* For read (green) state */
+.tick.read {
+  color: #22c55e; /* green-500 */
+}
+
+/* When showing ticks on light backgrounds (receiver), make ticks darker */
+.receiver-bubble ~ .message-actions ~ .message-status .tick,
+.receiver-bubble + .message-actions ~ .message-status .tick {
+  color: rgba(0, 0, 0, 0.6);
+}

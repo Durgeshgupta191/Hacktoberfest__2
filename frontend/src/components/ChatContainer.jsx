@@ -110,7 +110,49 @@ const ChatContainer = ({ showSidebar, setShowSidebar }) => {
                         {/* Message header with name and time */}
                         <div className="message-header">
                           {isOwnMessage ? 'You' : selectedUser.fullName}
-                          <time className="ml-2">{formatMessageTime(message.createdAt)}</time>
+                          <time className="ml-2">
+                            {formatMessageTime(message.createdAt)}
+                            {/* Message status ticks for own messages (single/double/green double) */}
+                            {isOwnMessage && (
+                              <span className="message-status" aria-hidden>
+                                {(() => {
+                                  // Map delivered/read -> single/double/green double
+                                  if (message.read) {
+                                    // double green tick
+                                    return (
+                                      <>
+                                        <svg className="tick read" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                          <path d="M1 13l4 4L11 7" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                                        </svg>
+                                        <svg className="tick read" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                          <path d="M9 13l4 4L21 7" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                                        </svg>
+                                      </>
+                                    );
+                                  }
+                                  if (message.delivered) {
+                                    // double grey tick
+                                    return (
+                                      <>
+                                        <svg className="tick" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                          <path d="M1 13l4 4L11 7" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                                        </svg>
+                                        <svg className="tick" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                          <path d="M9 13l4 4L21 7" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                                        </svg>
+                                      </>
+                                    );
+                                  }
+                                  // single grey tick (sent but not delivered yet)
+                                  return (
+                                    <svg className="tick" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                      <path d="M1 13l4 4L11 7" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                                    </svg>
+                                  );
+                                })()}
+                              </span>
+                            )}
+                          </time>
                         </div>
 
                         {/* Message bubble */}

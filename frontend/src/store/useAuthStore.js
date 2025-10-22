@@ -250,22 +250,52 @@ export const useAuthStore = create((set, get) => ({
     // Global handlers for incoming messages
     socket.on('newMessage', async (message) => {
       try {
-        console.debug('[socket] newMessage received', message);
+        // Delegate to useChatStore's subscribeToMessages logic for delivery/read receipts
         const mod = await import('./useChatStore');
         const chatStore = mod.useChatStore;
-        const currentUser = get().authUser;
-        const blocked = get().blockedUsers.map((u) => (u._id ? u._id : u));
-        // ignore incoming messages from blocked users
-        if (blocked.includes(message.senderId)) return;
-        if (!chatStore || !currentUser) return;
-
-        const selectedUser = chatStore.getState().selectedUser;
-        if (selectedUser && message.senderId === selectedUser._id) {
-          chatStore.setState((s) => ({ messages: [...s.messages, message] }));
-        } else {
-          chatStore.setState((s) => ({ messages: [...s.messages, message] }));
-          if (message.senderId !== currentUser._id) {
-            chatStore.getState().notifyNewMessage(message, { isGroup: false });
+        if (chatStore && typeof chatStore.getState === 'function') {
+          // Use the same logic as subscribeToMessages
+          const { selectedUser } = chatStore.getState();
+          const currentUser = get().authUser;
+          const blocked = get().blockedUsers.map((u) => (u._id ? u._id : u));
+          if (blocked.includes(message.senderId)) return;
+          // Decrypt if needed
+          if (message.isEncrypted && message.encryptedText) {
+            try {
+              const modEnc = await import('./useEncryptionStore');
+              const decrypt = modEnc.useEncryptionStore.getState().decryptReceivedMessage;
+              message.text = await decrypt(message.encryptedText, message.senderId);
+            } catch (error) {
+              message.text = '[Encrypted message - unable to decrypt]';
+            }
+          }
+          // Use subscribeToMessages logic
+          const appendMessage = () => chatStore.setState((s) => ({ messages: [...s.messages, message] }));
+          if (selectedUser && message.senderId === selectedUser._id) {
+            appendMessage();
+            // Immediately emit read receipt for messages that become visible
+            try {
+              if (!message.groupId && currentUser && message.receiverId === currentUser._id) {
+                const s = get().socket;
+                if (s && s.connected) s.emit('messageRead', { messageId: message._id });
+              }
+            } catch (err) {
+              console.warn('Failed to emit messageRead:', err);
+            }
+          } else {
+            appendMessage();
+            if (currentUser && message.senderId !== currentUser._id) {
+              chatStore.getState().notifyNewMessage(message, { isGroup: false });
+            }
+            // Emit delivery acknowledgement back to server so sender receives single/double ticks
+            try {
+              if (!message.groupId && currentUser && message.receiverId === currentUser._id) {
+                const s = get().socket;
+                if (s && s.connected) s.emit('messageDelivered', { messageId: message._id });
+              }
+            } catch (err) {
+              console.warn('Failed to emit messageDelivered:', err);
+            }
           }
         }
       } catch (err) {
