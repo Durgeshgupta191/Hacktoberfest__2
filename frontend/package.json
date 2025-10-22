@@ -24,9 +24,6 @@
     "tinyglobby": "^0.2.15",
     "zustand": "^5.0.3"
   },
-  "overrides": {
-    "engine.io-client": "6.5.2"
-  },
   "devDependencies": {
     "@eslint/js": "^9.21.0",
     "@tailwindcss/postcss": "^4.0.17",
