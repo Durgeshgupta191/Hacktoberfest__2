@@ -1,3 +1,8 @@
+import { useRef, useState } from "react";
+import { useChatStore } from "../store/useChatStore";
+import { Image, Send, X, Smile } from "lucide-react";
+import toast from "react-hot-toast";
+import EmojiPicker from "emoji-picker-react";
 import { useRef, useState, useEffect } from 'react';
 
 import { useChatStore } from '../store/useChatStore';
@@ -9,6 +14,7 @@ import { VoiceRecorder } from './VoiceMessage';
 const MessageInput = ({ isGroup = false }) => {
   const [text, setText] = useState('');
   const [imagePreview, setImagePreview] = useState(null);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const fileInputRef = useRef(null);
   const { sendMessage, sendGroupMessage, selectedGroup, selectedUser } = useChatStore();
   const { socket } = useAuthStore();
@@ -106,6 +112,11 @@ const MessageInput = ({ isGroup = false }) => {
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
+  const handleEmojiClick = (emojiObject) => {
+    setText((prevText) => prevText + emojiObject.emoji);
+    setShowEmojiPicker(false);
+  };
+
   const handleSendMessage = async (e) => {
     e.preventDefault();
     if (!text.trim() && !imagePreview) return;
@@ -166,7 +177,7 @@ const MessageInput = ({ isGroup = false }) => {
   }, [text, selectedUser, socket]);
 
   return (
-    <div className="p-4 w-full">
+    <div className="p-4 w-full relative">
       {imagePreview && (
         <div className="mb-3 flex items-center gap-2">
           <div className="relative">
@@ -285,6 +296,16 @@ const MessageInput = ({ isGroup = false }) => {
           {/* Image upload button */}
           <button
             type="button"
+            className="btn btn-circle btn-sm"
+            onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+          >
+            <Smile size={20} />
+          </button>
+
+          <button
+            type="button"
+            className={`hidden sm:flex btn btn-circle
+                     ${imagePreview ? "text-emerald-500" : "text-zinc-400"}`}
             className={`flex btn btn-circle btn-sm sm:btn-md
                      ${imagePreview ? 'text-emerald-500' : 'text-zinc-400'}`}
             onClick={() => fileInputRef.current?.click()}
@@ -313,6 +334,12 @@ const MessageInput = ({ isGroup = false }) => {
           <Send size={22} />
         </button>
       </form>
+
+      {showEmojiPicker && (
+        <div className="absolute bottom-16 right-4 z-10">
+          <EmojiPicker onEmojiClick={handleEmojiClick} />
+        </div>
+      )}
     </div>
   );
 };
