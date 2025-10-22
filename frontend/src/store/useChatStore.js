@@ -1,48 +1,84 @@
-import { create } from "zustand";
-import toast from "react-hot-toast";
-import { axiosInstance } from "../lib/axios";
-import { useAuthStore } from "./useAuthStore";
-import { useEncryptionStore } from "./useEncryptionStore";
+import { create } from 'zustand';
+import toast from '../lib/toast';
+import { axiosInstance } from '../lib/axios';
+import { useAuthStore } from './useAuthStore';
+import { useEncryptionStore } from './useEncryptionStore';
+import { socket } from '../lib/socket';
+
+const getErrorMessage = (error, fallback = 'An error occurred') => {
+  if (!error) return fallback;
+  if (error.response && error.response.data) {
+    return (
+      error.response.data.message ||
+      error.response.data.error ||
+      JSON.stringify(error.response.data) ||
+      fallback
+    );
+  }
+  if (error.message) return error.message;
+  return String(error);
+};
 
 export const useChatStore = create((set, get) => ({
   messages: [],
   users: [],
+  groups: [],
+  groupMessages: [],
+  addGroup: '',
   pinnedChats: [],
   archivedChats: [],
   selectedUser: null,
+  selectedGroup: null,
   isUsersLoading: false,
   isMessagesLoading: false,
+  userLastSeen: {},
+  isGroupsLoading: false,
+  isGroupMessagesLoading: false,
+  isGroupCreating: false,
 
-  getUsers: async () => {
+  getUsers: async (q) => {
     set({ isUsersLoading: true });
     try {
-      const res = await axiosInstance.get("/messages/users");
-      set({ users: res.data });
+      const res = await axiosInstance.get('/messages/users', {
+        params: q ? { q } : undefined,
+      });
+      const users = res.data;
+      // Update last seen for each user
+      const lastSeenUpdates = {};
+      users.forEach((user) => {
+        if (user.lastSeen) {
+          lastSeenUpdates[user._id] = user.lastSeen;
+        }
+      });
+      set({
+        users,
+        userLastSeen: { ...get().userLastSeen, ...lastSeenUpdates },
+      });
       // Also get pinned chats
       await get().getPinnedChats();
       await get().getArchivedChats();
     } catch (error) {
-      toast.error(error.response.data.message);
+      toast.error(getErrorMessage(error, 'Failed to fetch users'));
     } finally {
       set({ isUsersLoading: false });
     }
   },
   getArchivedChats: async () => {
     try {
-      const res = await axiosInstance.get("/messages/archived/chats");
+      const res = await axiosInstance.get('/messages/archived/chats');
       // assuming backend returns an array of user IDs or user objects
       const archivedIds = res.data.map((chat) => (chat._id ? chat._id : chat));
       set({ archivedChats: archivedIds });
     } catch (error) {
-      console.error("Failed to fetch archived chats:", error);
+      console.error('Failed to fetch archived chats:', error);
     }
   },
   getPinnedChats: async () => {
     try {
-      const res = await axiosInstance.get("/messages/pinned/chats");
+      const res = await axiosInstance.get('/messages/pinned/chats');
       set({ pinnedChats: res.data });
     } catch (error) {
-      console.error("Error getting pinned chats:", error);
+      console.error('Error getting pinned chats:', error);
     }
   },
 
@@ -54,9 +90,9 @@ export const useChatStore = create((set, get) => ({
       if (userToPin && !pinnedChats.find((chat) => chat._id === userId)) {
         set({ pinnedChats: [...pinnedChats, userToPin] });
       }
-      toast.success("Chat pinned successfully");
+      toast.success('Chat pinned successfully');
     } catch (error) {
-      toast.error(error.response?.data?.error || "Failed to pin chat");
+      toast.error(error.response?.data?.error || 'Failed to pin chat');
     }
   },
 
@@ -65,9 +101,9 @@ export const useChatStore = create((set, get) => ({
       await axiosInstance.post(`/messages/archive/${userId}`); // backend endpoint
       const { archivedChats } = get();
       set({ archivedChats: [...archivedChats, userId] });
-      toast.success("Chat archived successfully");
+      toast.success('Chat archived successfully');
     } catch (error) {
-      toast.error(error.response?.data?.error || "Failed to archive chat");
+      toast.error(error.response?.data?.error || 'Failed to archive chat');
     }
   },
 
@@ -76,9 +112,9 @@ export const useChatStore = create((set, get) => ({
       await axiosInstance.post(`/messages/unpin/${userId}`);
       const { pinnedChats } = get();
       set({ pinnedChats: pinnedChats.filter((chat) => chat._id !== userId) });
-      toast.success("Chat unpinned successfully");
+      toast.success('Chat unpinned successfully');
     } catch (error) {
-      toast.error(error.response?.data?.error || "Failed to unpin chat");
+      toast.error(error.response?.data?.error || 'Failed to unpin chat');
     }
   },
 
@@ -87,9 +123,9 @@ export const useChatStore = create((set, get) => ({
       await axiosInstance.post(`/messages/unarchive/${userId}`); // backend endpoint
       const { archivedChats } = get();
       set({ archivedChats: archivedChats.filter((id) => id !== userId) });
-      toast.success("Chat unarchived successfully");
+      toast.success('Chat unarchived successfully');
     } catch (error) {
-      toast.error(error.response?.data?.error || "Failed to unarchive chat");
+      toast.error(error.response?.data?.error || 'Failed to unarchive chat');
     }
   },
 
@@ -116,16 +152,13 @@ export const useChatStore = create((set, get) => ({
             try {
               const decryptedText = await useEncryptionStore
                 .getState()
-                .decryptReceivedMessage(
-                  message.encryptedText,
-                  message.senderId
-                );
+                .decryptReceivedMessage(message.encryptedText, message.senderId);
               return { ...message, text: decryptedText };
             } catch (error) {
-              console.error("Failed to decrypt message:", error);
+              console.error('Failed to decrypt message:', error);
               return {
                 ...message,
-                text: "[Encrypted message - unable to decrypt]",
+                text: '[Encrypted message - unable to decrypt]',
               };
             }
           }
@@ -134,8 +167,19 @@ export const useChatStore = create((set, get) => ({
       );
 
       set({ messages: decryptedMessages });
+
+      // WhatsApp-like: emit 'messageRead' for all unread messages that are visible in the chat
+      const currentUser = useAuthStore.getState().authUser;
+      const s = useAuthStore.getState().socket;
+      if (s && s.connected && currentUser) {
+        decryptedMessages.forEach((msg) => {
+          if (!msg.groupId && msg.receiverId === currentUser._id && !msg.read) {
+            s.emit('messageRead', { messageId: msg._id });
+          }
+        });
+      }
     } catch (error) {
-      toast.error(error.response.data.message);
+      toast.error(getErrorMessage(error, 'Failed to fetch messages'));
     } finally {
       set({ isMessagesLoading: false });
     }
@@ -154,13 +198,10 @@ export const useChatStore = create((set, get) => ({
         finalMessageData = { ...messageData, ...encryptionResult };
       }
 
-      const res = await axiosInstance.post(
-        `/messages/send/${selectedUser._id}`,
-        finalMessageData
-      );
+      const res = await axiosInstance.post(`/messages/send/${selectedUser._id}`, finalMessageData);
       set({ messages: [...messages, res.data] });
     } catch (error) {
-      toast.error(error.response.data.messages);
+      toast.error(getErrorMessage(error, 'Failed to send message'));
     }
   },
 
@@ -170,58 +211,210 @@ export const useChatStore = create((set, get) => ({
 
     const socket = useAuthStore.getState().socket;
 
-    socket.on("newMessage", async (newMessage) => {
-      if (newMessage.senderId !== selectedUser._id) return;
-
+    socket.on('newMessage', async (newMessage) => {
+      // If this message is for a different selected user, still notify
+      const currentUser = useAuthStore.getState().authUser;
       // Decrypt message if it's encrypted
       if (newMessage.isEncrypted && newMessage.encryptedText) {
         try {
           const decryptedText = await useEncryptionStore
             .getState()
-            .decryptReceivedMessage(
-              newMessage.encryptedText,
-              newMessage.senderId
-            );
+            .decryptReceivedMessage(newMessage.encryptedText, newMessage.senderId);
           newMessage.text = decryptedText;
         } catch (error) {
-          console.error("Failed to decrypt received message:", error);
-          newMessage.text = "[Encrypted message - unable to decrypt]";
+          console.error('Failed to decrypt received message:', error);
+          newMessage.text = '[Encrypted message - unable to decrypt]';
         }
       }
 
-      set({
-        messages: [...get().messages, newMessage],
-      });
+      // If the message is for the currently open chat, just append it; otherwise notify
+      const appendMessage = () => set({ messages: [...get().messages, newMessage] });
+
+      if (selectedUser && newMessage.senderId === selectedUser._id) {
+        appendMessage();
+        // Immediately emit read receipt for messages that become visible
+        try {
+          if (!newMessage.groupId && currentUser && newMessage.receiverId === currentUser._id) {
+            const s = useAuthStore.getState().socket;
+            if (s && s.connected) s.emit('messageRead', { messageId: newMessage._id });
+          }
+        } catch (err) {
+          console.warn('Failed to emit messageRead:', err);
+        }
+      } else {
+        // append to messages list (so unread count can use it) and notify
+        appendMessage();
+        // don't notify about our own messages
+        if (currentUser && newMessage.senderId !== currentUser._id) {
+          get().notifyNewMessage(newMessage, { isGroup: false });
+        }
+        // Emit delivery acknowledgement back to server so sender receives single/double ticks
+        try {
+          if (!newMessage.groupId && currentUser && newMessage.receiverId === currentUser._id) {
+            const s = useAuthStore.getState().socket;
+            if (s && s.connected) s.emit('messageDelivered', { messageId: newMessage._id });
+          }
+        } catch (err) {
+          console.warn('Failed to emit messageDelivered:', err);
+        }
+      }
     });
 
-    socket.on("messageUpdated", (updated) => {
+    // Update message delivery status (sender receives this)
+    socket.on('messageDelivered', ({ _id, delivered, deliveredAt }) => {
+      set({ messages: get().messages.map((m) => (m._id === _id ? { ...m, delivered, deliveredAt } : m)) });
+      set({ groupMessages: get().groupMessages.map((m) => (m._id === _id ? { ...m, delivered, deliveredAt } : m)) });
+    });
+
+    // Update message read status (sender receives this)
+    socket.on('messageRead', ({ _id, read, readAt }) => {
+      set({ messages: get().messages.map((m) => (m._id === _id ? { ...m, read, readAt } : m)) });
+      set({ groupMessages: get().groupMessages.map((m) => (m._id === _id ? { ...m, read, readAt } : m)) });
+    });
+
+    socket.on('messageUpdated', (updated) => {
       set({
         messages: get().messages.map((m) => (m._id === updated._id ? updated : m)),
       });
     });
 
-    socket.on("messageDeleted", ({ _id }) => {
+    socket.on('messageDeleted', ({ _id }) => {
       set({ messages: get().messages.filter((m) => m._id !== _id) });
+    });
+
+    socket.on('messageReactionAdded', (updatedMessage) => {
+      console.debug('[socket] messageReactionAdded received', updatedMessage);
+
+      // Force a more complete refresh to ensure UI updates properly
+      if (updatedMessage.groupId) {
+        // For group messages
+        const groupMessages = get().groupMessages || [];
+        const updatedMessages = groupMessages.map((m) =>
+          m._id === updatedMessage._id ? { ...updatedMessage } : m
+        );
+        set({ groupMessages: [...updatedMessages] });
+      } else {
+        // For direct messages
+        const messages = get().messages || [];
+        const updatedMessages = messages.map((m) =>
+          m._id === updatedMessage._id ? { ...updatedMessage } : m
+        );
+        set({ messages: [...updatedMessages] });
+      }
+    });
+
+    socket.on('messageReactionRemoved', (updatedMessage) => {
+      console.debug('[socket] messageReactionRemoved received', updatedMessage);
+
+      // Force a more complete refresh to ensure UI updates properly
+      if (updatedMessage.groupId) {
+        // For group messages
+        const groupMessages = get().groupMessages || [];
+        const updatedMessages = groupMessages.map((m) =>
+          m._id === updatedMessage._id ? { ...updatedMessage } : m
+        );
+        set({ groupMessages: [...updatedMessages] });
+      } else {
+        // For direct messages
+        const messages = get().messages || [];
+        const updatedMessages = messages.map((m) =>
+          m._id === updatedMessage._id ? { ...updatedMessage } : m
+        );
+        set({ messages: [...updatedMessages] });
+      }
     });
   },
 
   unsubscribeFromMessages: () => {
     const socket = useAuthStore.getState().socket;
-    socket.off("newMessage");
-    socket.off("messageUpdated");
-    socket.off("messageDeleted");
+    socket.off('newMessage');
+    socket.off('messageUpdated');
+    socket.off('messageDeleted');
+    socket.off('messageReactionAdded');
+    socket.off('messageReactionRemoved');
+  },
+
+  // Send voice message
+  sendVoiceMessage: async ({ audioBlob, duration, recipientId, groupId }) => {
+    try {
+      const formData = new FormData();
+
+      // Add audio file
+      formData.append('audio', audioBlob, 'voice-message.webm');
+
+      // Add other data
+      formData.append('duration', duration.toString());
+
+      let endpoint = '';
+
+      // Determine the correct endpoint based on whether it's a direct or group message
+      if (groupId) {
+        endpoint = `/voice-messages/group/${groupId}`;
+      } else if (recipientId) {
+        endpoint = `/voice-messages/${recipientId}`;
+      } else {
+        throw new Error('Either recipientId or groupId must be provided');
+      }
+
+      // Upload voice message
+      const res = await axiosInstance.post(endpoint, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      const newMessage = res.data;
+
+      console.log('Voice message successfully sent:', newMessage);
+
+      // Update messages in state
+      if (groupId) {
+        console.log('Adding voice message to group messages:', {
+          groupId,
+          currentMessages: get().groupMessages.length,
+          newMessage,
+        });
+
+        set((state) => ({
+          ...state,
+          groupMessages: [...state.groupMessages, newMessage],
+        }));
+
+        console.log('Updated group messages:', get().groupMessages.length);
+      } else {
+        console.log('Adding voice message to direct messages:', {
+          recipientId,
+          currentMessages: get().messages.length,
+          newMessage,
+        });
+
+        set((state) => ({
+          ...state,
+          messages: [...state.messages, newMessage],
+        }));
+
+        console.log('Updated messages:', get().messages.length);
+      }
+
+      return newMessage;
+    } catch (error) {
+      console.error('Error sending voice message:', error);
+      throw new Error(getErrorMessage(error, 'Failed to send voice message'));
+    }
   },
 
   setSelectedUser: (selectedUser) => set({ selectedUser }),
 
   editMessage: async (messageId, newText) => {
     try {
-      const res = await axiosInstance.put(`/messages/edit/${messageId}`, { text: newText });
+      const res = await axiosInstance.put(`/messages/edit/${messageId}`, {
+        text: newText,
+      });
       set({
         messages: get().messages.map((m) => (m._id === messageId ? res.data : m)),
       });
     } catch (error) {
-      toast.error(error.response?.data?.error || "Failed to edit message");
+      toast.error(error.response?.data?.error || 'Failed to edit message');
     }
   },
 
@@ -230,7 +423,355 @@ export const useChatStore = create((set, get) => ({
       await axiosInstance.delete(`/messages/delete/${messageId}`);
       set({ messages: get().messages.filter((m) => m._id !== messageId) });
     } catch (error) {
-      toast.error(error.response?.data?.error || "Failed to delete message");
+      toast.error(error.response?.data?.error || 'Failed to delete message');
+    }
+  },
+
+  setSelectedGroup: (selectedGroup) => set({ selectedGroup }),
+
+  getGroups: async () => {
+    set({ isGroupsLoading: true });
+    try {
+      const res = await axiosInstance.get('/groups/my-groups');
+      set({ groups: res.data.groups || [] });
+    } catch (error) {
+      console.error('Error fetching groups:', error);
+      toast.error(error.response?.data?.message || 'Failed to fetch groups');
+    } finally {
+      set({ isGroupsLoading: false });
+    }
+  },
+
+  addGroup: async (groupData) => {
+    set({ isGroupCreating: true });
+    try {
+      const res = await axiosInstance.post('/groups/create', groupData, {
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      toast.success(res.data.message || 'Group created successfully!');
+
+      await get().getGroups();
+      return res.data.group;
+    } catch (error) {
+      console.error('Error creating group:', error);
+      toast.error(error.response?.data?.message || 'Failed to create group');
+    } finally {
+      set({ isGroupCreating: false });
+    }
+  },
+
+  getGroupMessages: async (groupId) => {
+    set({ isGroupMessagesLoading: true });
+    try {
+      const res = await axiosInstance.get(`/group-messages/${groupId}`);
+      set({ groupMessages: res.data.messages || [] });
+    } catch (error) {
+      console.error('Error fetching group messages:', error);
+      toast.error(error.response?.data?.message || 'Failed to load group messages');
+    } finally {
+      set({ isGroupMessagesLoading: false });
+    }
+  },
+
+  // Notify user about an incoming message (one-to-one or group)
+  notifyNewMessage: async (message, { isGroup = false } = {}) => {
+    console.debug('[notifyNewMessage] called', {
+      messageId: message._id,
+      isGroup,
+    });
+    try {
+      const currentUser = useAuthStore.getState().authUser;
+      if (!currentUser) return;
+      // Don't notify for messages sent by ourselves
+      if (message.senderId === currentUser._id) return;
+
+      // Resolve sender and title
+      const sender = get().users.find((u) => u._id === message.senderId) || {};
+      const senderName = sender.name || sender.username || 'Someone';
+      const title = isGroup
+        ? get().groups.find((g) => g._id === message.groupId)?.name || 'Group'
+        : senderName;
+
+      // Try to obtain a short snippet. If encrypted, attempt decryption and fall back to marker
+      let snippet = '';
+      if (message.isEncrypted && message.encryptedText) {
+        try {
+          snippet = await useEncryptionStore
+            .getState()
+            .decryptReceivedMessage(message.encryptedText, message.senderId);
+        } catch (e) {
+          snippet = '[Encrypted message]';
+        }
+      } else {
+        snippet = message.text || '';
+      }
+
+      // normalize snippet
+      snippet = String(snippet).replace(/\s+/g, ' ').trim().slice(0, 120);
+      const body = isGroup ? `${senderName}: ${snippet}` : snippet;
+
+      // Show a concise info toast. The toast wrapper will dedupe identical messages.
+      console.debug('[notifyNewMessage] showing toast', { title, body });
+      if (body) {
+        toast.info(`${title} — ${body}`, { duration: 4000 });
+      } else {
+        toast.info(`${title} — new message`, { duration: 3000 });
+      }
+
+      // Also show a native desktop notification when permitted so user receives
+      // notifications even when interacting with other pages in the app.
+      try {
+        if (typeof window !== 'undefined' && 'Notification' in window) {
+          const showNative = async () => {
+            if (Notification.permission === 'granted') {
+              const n = new Notification(title, {
+                body: body || 'New message',
+              });
+              // Bring app to focus when user clicks notification
+              n.onclick = () => {
+                try {
+                  window.focus();
+                } catch (e) {}
+              };
+            } else if (Notification.permission === 'default') {
+              const p = await Notification.requestPermission();
+              if (p === 'granted') {
+                const n = new Notification(title, {
+                  body: body || 'New message',
+                });
+                n.onclick = () => {
+                  try {
+                    window.focus();
+                  } catch (e) {}
+                };
+              }
+            }
+          };
+          // don't await to avoid blocking UI
+          showNative().catch((e) => console.warn('native notification failed', e));
+        }
+      } catch (e) {
+        console.warn('notifyNewMessage: native notification error', e);
+      }
+    } catch (err) {
+      // never throw from notification helper
+      console.error('notifyNewMessage error', err);
+    }
+  },
+
+  sendGroupMessage: async (groupId, messageData) => {
+    try {
+      const res = await axiosInstance.post(`/group-messages/send/${groupId}`, messageData);
+      // Immediately reflect the sent message for the sender to avoid waiting for socket echo
+      // set({ groupMessages: [...get().groupMessages, res.data] });
+    } catch (error) {
+      console.error('Error sending group message:', error);
+      toast.error(error.response?.data?.message || 'Failed to send group message');
+    }
+  },
+
+  subscribeToGroupMessages: () => {
+    const { selectedGroup } = get();
+    if (!selectedGroup) return;
+    const socket = useAuthStore.getState().socket;
+
+    // Join the group room for socket events
+    socket.emit('joinGroup', selectedGroup._id);
+
+    socket.on('newGroupMessage', (newMessage) => {
+      const { groupMessages } = get();
+      const currentUser = useAuthStore.getState().authUser;
+
+      // If this message belongs to another group, still save it and notify
+      const isForSelected = selectedGroup && newMessage.groupId === selectedGroup._id;
+
+      if (newMessage.senderId === currentUser._id) return;
+
+      const exists = groupMessages.some((msg) => msg._id === newMessage._id);
+      if (exists) return;
+
+      // append to group messages
+      set({ groupMessages: [...groupMessages, newMessage] });
+
+      // If group is not open, show notification
+      if (!isForSelected) {
+        get().notifyNewMessage(newMessage, { isGroup: true });
+      }
+    });
+
+    socket.on('messageReactionAdded', (updatedMessage) => {
+      console.debug('[socket] messageReactionAdded received in group', updatedMessage);
+      set({
+        groupMessages: get().groupMessages.map((m) =>
+          m._id === updatedMessage._id ? updatedMessage : m
+        ),
+      });
+    });
+
+    socket.on('messageReactionRemoved', (updatedMessage) => {
+      console.debug('[socket] messageReactionRemoved received in group', updatedMessage);
+      set({
+        groupMessages: get().groupMessages.map((m) =>
+          m._id === updatedMessage._id ? updatedMessage : m
+        ),
+      });
+    });
+  },
+
+  unsubscribeFromGroupMessages: () => {
+    const socket = useAuthStore.getState().socket;
+    socket.off('newGroupMessage');
+    socket.off('messageReactionAdded');
+    socket.off('messageReactionRemoved');
+  },
+
+  addGroupMembers: async (groupId, userIds) => {
+    try {
+      const res = await axiosInstance.post(
+        `/groups/${groupId}/add-members`,
+        { userIds },
+        { headers: { 'Content-Type': 'application/json' } }
+      );
+
+      toast.success(res.data.message || 'Members added successfully!');
+
+      set((state) => ({
+        groups: state.groups.map((group) =>
+          group._id === groupId ? { ...group, members: res.data.members } : group
+        ),
+      }));
+
+      return res.data;
+    } catch (error) {
+      console.error('Error adding members:', error);
+      toast.error(error.response?.data?.message || 'Failed to add members');
+    }
+  },
+
+  removeGroupMembers: async (groupId, userIds) => {
+    try {
+      const res = await axiosInstance.post(
+        `/groups/${groupId}/remove-members`,
+        { userIds },
+        { headers: { 'Content-Type': 'application/json' } }
+      );
+
+      toast.success(res.data.message || 'Members removed successfully!');
+
+      set((state) => ({
+        groups: state.groups.map((group) =>
+          group._id === groupId ? { ...group, members: res.data.members } : group
+        ),
+      }));
+      return res.data;
+    } catch (error) {
+      console.error('Error removing members:', error);
+      toast.error(error.response?.data?.message || 'Failed to remove members');
+    }
+  },
+
+  leaveGroup: async (groupId) => {
+    try {
+      const res = await axiosInstance.post(
+        `/groups/${groupId}/leave-group`,
+        {},
+        { headers: { 'Content-Type': 'application/json' } }
+      );
+
+      toast.success(res.data.message || 'You have left the group!');
+      set((state) => ({
+        groups: state.groups.map((group) =>
+          group._id === groupId ? { ...group, members: res.data.members } : group
+        ),
+      }));
+
+      return res.data;
+    } catch (error) {
+      console.error('Error leaving group:', error);
+      toast.error(error.response?.data?.message || 'Failed to leave group');
+    }
+  },
+
+  addGroupAdmin: async (groupId, userIds) => {
+    try {
+      const res = await axiosInstance.post(
+        `/groups/${groupId}/add-admin`,
+        { userIds },
+        { headers: { 'Content-Type': 'application/json' } }
+      );
+
+      toast.success(res.data.message || 'Admin added successfully!');
+
+      set((state) => ({
+        groups: state.groups.map((group) =>
+          group._id === groupId ? { ...group, admin: res.data.admin } : group
+        ),
+      }));
+
+      return res.data;
+    } catch (error) {
+      console.error('Error adding admins:', error);
+      toast.error(error.response?.data?.message || 'Failed to add admins');
+    }
+  },
+
+  removeGroupAdmin: async (groupId, userIds) => {
+    try {
+      const res = await axiosInstance.post(
+        `/groups/${groupId}/remove-admin`,
+        { userIds },
+        { headers: { 'Content-Type': 'application/json' } }
+      );
+
+      toast.success(res.data.message || 'Admin removed successfully!');
+
+      set((state) => ({
+        groups: state.groups.map((group) =>
+          group._id === groupId ? { ...group, admin: res.data.admin } : group
+        ),
+      }));
+
+      return res.data;
+    } catch (error) {
+      console.error('Error removing admins:', error);
+      toast.error(error.response?.data?.message || 'Failed to remove admins');
+    }
+  },
+
+  removeGroupLocally: (groupId) =>
+    set((state) => ({
+      groups: state.groups.filter((g) => g._id !== groupId),
+      selectedGroup: state.selectedGroup?._id === groupId ? null : state.selectedGroup,
+    })),
+
+  sendVoiceMessage: async ({ audioBlob, duration, recipientId, groupId }) => {
+    try {
+      // Create a FormData object to send the audio file
+      const formData = new FormData();
+      formData.append('audio', audioBlob, 'voice-message.webm');
+      formData.append('duration', duration.toString());
+
+      let response;
+
+      // Determine if this is a direct message or group message
+      if (groupId) {
+        // For group messages
+        response = await axiosInstance.post(`/voice-messages/group/${groupId}`, formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+      } else {
+        // For direct messages
+        response = await axiosInstance.post(`/voice-messages/${recipientId}`, formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+      }
+
+      return response.data;
+    } catch (error) {
+      console.error('Error sending voice message:', error);
+      toast.error(getErrorMessage(error, 'Failed to send voice message'));
+      throw error;
     }
   },
 }));

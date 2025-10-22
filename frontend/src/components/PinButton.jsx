@@ -1,7 +1,7 @@
-import { Pin, PinOff } from "lucide-react";
-import { useChatStore } from "../store/useChatStore";
+import { Pin, PinOff } from 'lucide-react';
+import { useChatStore } from '../store/useChatStore';
 
-const PinButton = ({ userId, className = "" }) => {
+const PinButton = ({ userId, className = '' }) => {
   const { pinChat, unpinChat, isChatPinned } = useChatStore();
   const isPinned = isChatPinned(userId);
 
@@ -18,15 +18,11 @@ const PinButton = ({ userId, className = "" }) => {
     <button
       onClick={handleTogglePin}
       className={`btn btn-ghost btn-sm ${className} ${
-        isPinned ? "text-primary" : "text-base-content/50 hover:text-base-content"
+        isPinned ? 'text-primary' : 'text-base-content/50 hover:text-base-content'
       }`}
-      title={isPinned ? "Unpin chat" : "Pin chat"}
+      title={isPinned ? 'Unpin chat' : 'Pin chat'}
     >
-      {isPinned ? (
-        <Pin className="size-4 fill-current" />
-      ) : (
-        <PinOff className="size-4" />
-      )}
+      {isPinned ? <Pin className="size-4 fill-current" /> : <PinOff className="size-4" />}
     </button>
   );
 };

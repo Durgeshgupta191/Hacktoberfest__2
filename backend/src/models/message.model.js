@@ -1,34 +1,93 @@
-import mongoose from "mongoose"
+import mongoose from 'mongoose';
 
-const messageSchema = new mongoose.Schema(
-    {
-        senderId: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: "User",
-            required: true,
-        },
-        receiverId: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: "User",
-            required: true,
-        },
-        text: {
-            type: String,
-        },
-        encryptedText: {
-            type: Object,
-            default: null,
-        },
-        isEncrypted: {
-            type: Boolean,
-            default: false,
-        },
-        image: {
-            type: String,
-        },
+// Define the reaction schema as a subdocument
+const reactionSchema = new mongoose.Schema(
+  {
+    emoji: {
+      type: String,
+      required: true,
     },
-    {timestamps: true}
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
+    },
+  },
+  { _id: false }
 );
 
-const Message = mongoose.model("Message",messageSchema);
+const messageSchema = new mongoose.Schema(
+  {
+    senderId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
+    },
+    receiverId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: function () {
+        return !this.groupId;
+      },
+    },
+
+    groupId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Group',
+      default: null,
+    },
+
+    text: {
+      type: String,
+    },
+    encryptedText: {
+      type: Object,
+      default: null,
+    },
+    isEncrypted: {
+      type: Boolean,
+      default: false,
+    },
+    image: {
+      type: String,
+    },
+    // Voice message properties
+    voiceMessage: {
+      type: String, // URL to the voice message file
+    },
+    voiceDuration: {
+      type: Number, // Duration in seconds
+      default: 0,
+    },
+    voiceWaveform: {
+      type: [Number], // Array of amplitude values for waveform visualization
+      default: [],
+    },
+    // Add the reactions array to the message schema
+    reactions: {
+      type: [reactionSchema],
+      default: [],
+    },
+    // Delivery/read receipts
+    delivered: {
+      type: Boolean,
+      default: false,
+    },
+    deliveredAt: {
+      type: Date,
+      default: null,
+    },
+    read: {
+      type: Boolean,
+      default: false,
+    },
+    readAt: {
+      type: Date,
+      default: null,
+    },
+  },
+  { timestamps: true }
+);
+
+const Message = mongoose.model('Message', messageSchema);
 export default Message;

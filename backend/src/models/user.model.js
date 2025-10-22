@@ -1,4 +1,5 @@
-import mongoose from "mongoose";
+import mongoose from 'mongoose';
+
 const userSchema = new mongoose.Schema(
   {
     email: {
@@ -12,38 +13,61 @@ const userSchema = new mongoose.Schema(
     },
     password: {
       type: String,
-      required: true,
+      required: function () {
+        return this.provider === 'email'; // only required for email signups
+      },
       minlength: 6,
     },
     profilePic: {
       type: String,
-      default: "",
+      default: '',
     },
     pinnedChats: [
       {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
+        ref: 'User',
       },
     ],
     archivedChats: [
       {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
+        ref: 'User',
       },
     ],
-
+    blockedUsers: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+      },
+    ],
     publicKey: {
       type: String,
-      default: "",
+      default: '',
     },
     privateKey: {
       type: String,
-      default: "",
+      default: '',
+    },
+    isVerified: {
+      type: Boolean,
+      default: false,
+    },
+    googleId: {
+      type: String,
+      sparse: true,
+    },
+    provider: {
+      type: String,
+      enum: ['email', 'google'],
+      default: 'email',
+    },
+    lastSeen: {
+      type: Date,
+      default: Date.now,
     },
   },
   { timestamps: true }
 );
 
-const User = mongoose.model("User", userSchema);
-
+const User = mongoose.model('User', userSchema);
 export default User;

@@ -1,4 +1,4 @@
-import { Users } from "lucide-react";
+import { Users } from 'lucide-react';
 
 const SidebarSkeleton = () => {
   // Create 8 skeleton items

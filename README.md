@@ -18,14 +18,14 @@ A **real-time chat app** built with the **MERN Stack**, **Socket.io**, **Tailwin
 
 ## 🧰 Tech Stack
 
-| Category | Technologies |
-|-----------|--------------|
-| **Frontend** | React, Zustand, TailwindCSS, DaisyUI, Socket.io-client |
-| **Backend** | Node.js, Express.js, MongoDB, Socket.io |
-| **Authentication** | JWT (JSON Web Token) |
-| **Media Storage** | Cloudinary |
-| **State Management** | Zustand |
-| **Environment** | .env configuration |
+| Category             | Technologies                                           |
+| -------------------- | ------------------------------------------------------ |
+| **Frontend**         | React, Zustand, TailwindCSS, DaisyUI, Socket.io-client |
+| **Backend**          | Node.js, Express.js, MongoDB, Socket.io                |
+| **Authentication**   | JWT (JSON Web Token)                                   |
+| **Media Storage**    | Cloudinary                                             |
+| **State Management** | Zustand                                                |
+| **Environment**      | .env configuration                                     |
 
 ---
 
@@ -33,7 +33,7 @@ A **real-time chat app** built with the **MERN Stack**, **Socket.io**, **Tailwin
 
 ## ⚙️ Environment Variables
 
-Create a `.env` file in your `server/` directory with the following keys:
+Create a `.env` file in your `backend/` directory with the following keys:
 
 ```env
 MONGODB_URI=
@@ -48,19 +48,54 @@ CLOUDINARY_CLOUD_NAME=
 CLOUDINARY_API_KEY=
 CLOUDINARY_API_SECRET=
 
-NETWORK_URL=http://192.168.1.25:5173
+FRONTEND_URL=
+```
 
+```bash
 git clone <your-github-repo-link>
-cd chat-app
+cd ChatApp
 
-cd server
+cd backend
+npm install
+```
+
+Create a `.env` file in your `frontend/` directory with the following keys:
+
+```env
+VITE_GIPHY_API=
+```
+
+### Installation
+
+**Option 1: Run with Docker**
+
+1. **Build and run the Docker containers**
+   ```bash
+   docker-compose up --build
+   ```
+2. **Access the application**
+   - Frontend: http://localhost:5173
+   - Backend: http://localhost:5001
+
+**Option 2: Run both servers manually**
+
+```bash
+
+cd backend
 npm install
 
-cd ../client
+cd frontend
 npm install
 
-cd server
+cd backend
 npm run dev
 
-cd ../client
+cd frontend
 npm run dev
+
+```
+
+**Access the application**
+
+- Frontend: http://localhost:5173
+- Backend: http://localhost:5001

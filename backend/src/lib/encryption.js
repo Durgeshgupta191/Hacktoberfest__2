@@ -11,7 +11,7 @@ const TAG_LENGTH = 16; // 128 bits
  * @returns {string} Base64 encoded key
  */
 export function generateEncryptionKey() {
-    return crypto.randomBytes(KEY_LENGTH).toString('base64');
+  return crypto.randomBytes(KEY_LENGTH).toString('base64');
 }
 
 /**
@@ -21,25 +21,25 @@ export function generateEncryptionKey() {
  * @returns {object} Encrypted data with iv, tag, and encrypted content
  */
 export function encryptMessage(text, keyBase64) {
-    try {
-        const key = Buffer.from(keyBase64, 'base64');
-        const iv = crypto.randomBytes(IV_LENGTH);
+  try {
+    const key = Buffer.from(keyBase64, 'base64');
+    const iv = crypto.randomBytes(IV_LENGTH);
 
-        const cipher = crypto.createCipherGCM(ALGORITHM, key, iv);
+    const cipher = crypto.createCipherGCM(ALGORITHM, key, iv);
 
-        let encrypted = cipher.update(text, 'utf8', 'base64');
-        encrypted += cipher.final('base64');
+    let encrypted = cipher.update(text, 'utf8', 'base64');
+    encrypted += cipher.final('base64');
 
-        const tag = cipher.getAuthTag();
+    const tag = cipher.getAuthTag();
 
-        return {
-            encrypted,
-            iv: iv.toString('base64'),
-            tag: tag.toString('base64')
-        };
-    } catch (error) {
-        throw new Error('Encryption failed: ' + error.message);
-    }
+    return {
+      encrypted,
+      iv: iv.toString('base64'),
+      tag: tag.toString('base64'),
+    };
+  } catch (error) {
+    throw new Error('Encryption failed: ' + error.message);
+  }
 }
 
 /**
@@ -49,21 +49,21 @@ export function encryptMessage(text, keyBase64) {
  * @returns {string} Decrypted text
  */
 export function decryptMessage(encryptedData, keyBase64) {
-    try {
-        const { encrypted, iv, tag } = encryptedData;
-        const key = Buffer.from(keyBase64, 'base64');
-        const ivBuffer = Buffer.from(iv, 'base64');
+  try {
+    const { encrypted, iv, tag } = encryptedData;
+    const key = Buffer.from(keyBase64, 'base64');
+    const ivBuffer = Buffer.from(iv, 'base64');
 
-        const decipher = crypto.createDecipherGCM(ALGORITHM, key, ivBuffer);
-        decipher.setAuthTag(Buffer.from(tag, 'base64'));
+    const decipher = crypto.createDecipherGCM(ALGORITHM, key, ivBuffer);
+    decipher.setAuthTag(Buffer.from(tag, 'base64'));
 
-        let decrypted = decipher.update(encrypted, 'base64', 'utf8');
-        decrypted += decipher.final('utf8');
+    let decrypted = decipher.update(encrypted, 'base64', 'utf8');
+    decrypted += decipher.final('utf8');
 
-        return decrypted;
-    } catch (error) {
-        throw new Error('Decryption failed: ' + error.message);
-    }
+    return decrypted;
+  } catch (error) {
+    throw new Error('Decryption failed: ' + error.message);
+  }
 }
 
 /**
@@ -71,17 +71,17 @@ export function decryptMessage(encryptedData, keyBase64) {
  * @returns {object} Public and private key pair
  */
 export function generateKeyPair() {
-    return crypto.generateKeyPairSync('rsa', {
-        modulusLength: 2048,
-        publicKeyEncoding: {
-            type: 'spki',
-            format: 'pem'
-        },
-        privateKeyEncoding: {
-            type: 'pkcs8',
-            format: 'pem'
-        }
-    });
+  return crypto.generateKeyPairSync('rsa', {
+    modulusLength: 2048,
+    publicKeyEncoding: {
+      type: 'spki',
+      format: 'pem',
+    },
+    privateKeyEncoding: {
+      type: 'pkcs8',
+      format: 'pem',
+    },
+  });
 }
 
 /**
@@ -91,19 +91,19 @@ export function generateKeyPair() {
  * @returns {string} Base64 encoded encrypted data
  */
 export function encryptWithPublicKey(data, publicKey) {
-    try {
-        const encrypted = crypto.publicEncrypt(
-            {
-                key: publicKey,
-                padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
-                oaepHash: 'sha256'
-            },
-            Buffer.from(data)
-        );
-        return encrypted.toString('base64');
-    } catch (error) {
-        throw new Error('RSA encryption failed: ' + error.message);
-    }
+  try {
+    const encrypted = crypto.publicEncrypt(
+      {
+        key: publicKey,
+        padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
+        oaepHash: 'sha256',
+      },
+      Buffer.from(data)
+    );
+    return encrypted.toString('base64');
+  } catch (error) {
+    throw new Error('RSA encryption failed: ' + error.message);
+  }
 }
 
 /**
@@ -113,17 +113,17 @@ export function encryptWithPublicKey(data, publicKey) {
  * @returns {string} Decrypted data
  */
 export function decryptWithPrivateKey(encryptedData, privateKey) {
-    try {
-        const decrypted = crypto.privateDecrypt(
-            {
-                key: privateKey,
-                padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
-                oaepHash: 'sha256'
-            },
-            Buffer.from(encryptedData, 'base64')
-        );
-        return decrypted.toString();
-    } catch (error) {
-        throw new Error('RSA decryption failed: ' + error.message);
-    }
+  try {
+    const decrypted = crypto.privateDecrypt(
+      {
+        key: privateKey,
+        padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
+        oaepHash: 'sha256',
+      },
+      Buffer.from(encryptedData, 'base64')
+    );
+    return decrypted.toString();
+  } catch (error) {
+    throw new Error('RSA decryption failed: ' + error.message);
+  }
 }

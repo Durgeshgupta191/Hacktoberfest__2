@@ -1,6 +1,6 @@
-import { MessageSquare } from "lucide-react";
+import { MessageSquare } from 'lucide-react';
 
-const NoChatSelected = () => {
+const NoChatSelected = ({ setShowSidebar }) => {
   return (
     <div className="w-full flex flex-1 flex-col items-center justify-center p-16 bg-base-100/50">
       <div className="max-w-md text-center space-y-6">
@@ -21,6 +21,9 @@ const NoChatSelected = () => {
         <p className="text-base-content/60">
           Select a conversation from the sidebar to start chatting
         </p>
+        <button className=" btn btn-success text-white " onClick={() => setShowSidebar(true)}>
+          <span>Start Chat</span>
+        </button>
       </div>
     </div>
   );

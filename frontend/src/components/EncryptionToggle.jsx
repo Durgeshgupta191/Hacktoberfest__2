@@ -1,5 +1,5 @@
-import { Shield, ShieldOff } from "lucide-react";
-import { useEncryptionStore } from "../store/useEncryptionStore";
+import { Shield, ShieldOff } from 'lucide-react';
+import { useEncryptionStore } from '../store/useEncryptionStore';
 
 const EncryptionToggle = () => {
   const { isEncryptionEnabled, setEncryptionEnabled } = useEncryptionStore();
@@ -9,19 +9,15 @@ const EncryptionToggle = () => {
       <button
         onClick={() => setEncryptionEnabled(!isEncryptionEnabled)}
         className={`btn btn-sm ${
-          isEncryptionEnabled 
-            ? "btn-success text-white" 
-            : "btn-ghost text-base-content/70"
+          isEncryptionEnabled ? 'btn-success text-white' : 'btn-ghost text-base-content/70'
         }`}
-        title={isEncryptionEnabled ? "End-to-End Encryption Enabled" : "End-to-End Encryption Disabled"}
+        title={
+          isEncryptionEnabled ? 'End-to-End Encryption Enabled' : 'End-to-End Encryption Disabled'
+        }
       >
-        {isEncryptionEnabled ? (
-          <Shield className="size-4" />
-        ) : (
-          <ShieldOff className="size-4" />
-        )}
+        {isEncryptionEnabled ? <Shield className="size-4" /> : <ShieldOff className="size-4" />}
         <span className="hidden sm:inline">
-          {isEncryptionEnabled ? "Encrypted" : "Not Encrypted"}
+          {isEncryptionEnabled ? 'Encrypted' : 'Not Encrypted'}
         </span>
       </button>
     </div>
