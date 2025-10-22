@@ -1,13 +1,10 @@
-import { useRef, useState } from "react";
-import { useChatStore } from "../store/useChatStore";
-import { Image, Send, X, Smile } from "lucide-react";
-import toast from "react-hot-toast";
+// import toast from "react-hot-toast";
 import EmojiPicker from "emoji-picker-react";
 import { useRef, useState, useEffect } from 'react';
 
 import { useChatStore } from '../store/useChatStore';
 import { useAuthStore } from '../store/useAuthStore';
-import { Image, Send, X, Mic } from 'lucide-react';
+import { Image, Send, X, Mic, Smile } from 'lucide-react';
 import toast from '../lib/toast';
 import { VoiceRecorder } from './VoiceMessage';
 
