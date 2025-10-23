@@ -7,7 +7,7 @@ A **real-time chat app** built with the **MERN Stack**, **Socket.io**, **Tailwin
 ## 🚀 Features
 
 - ⚡ **Instant Messaging:** Real-time two-way communication using **Socket.io**.
-- 🔐 **Authentication:** Secure login & signup with **JWT tokens**.
+-  **Authentication:** Secure login & signup with **JWT tokens**.
 - 🟢 **Online Status:** Track and display online/offline users dynamically.
 - 🌐 **Cloud Storage:** Store and manage user images with **Cloudinary**.
 - 🧠 **Global State Management:** Smooth UI updates with **Zustand**.

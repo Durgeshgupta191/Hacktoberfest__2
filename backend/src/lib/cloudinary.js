@@ -20,7 +20,7 @@ if (hasCloudinaryConfig) {
   });
 } else {
   console.error(
-    '⚠️ Cloudinary environment variables are not set properly. Voice message functionality will be disabled.'
+    'Cloudinary environment variables are not set properly. Voice message functionality will be disabled.'
   );
   console.error(
     'To enable voice messages, please set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET in your .env file.'

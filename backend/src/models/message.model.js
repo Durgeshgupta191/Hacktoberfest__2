@@ -39,35 +39,42 @@ const messageSchema = new mongoose.Schema(
 
     text: {
       type: String,
+      required: false,
     },
+
     encryptedText: {
       type: Object,
       default: null,
     },
+
     isEncrypted: {
       type: Boolean,
       default: false,
     },
+
     image: {
       type: String,
     },
-    // Voice message properties
+
     voiceMessage: {
-      type: String, // URL to the voice message file
+      type: String,
     },
+
     voiceDuration: {
-      type: Number, // Duration in seconds
+      type: Number,
       default: 0,
     },
+
     voiceWaveform: {
-      type: [Number], // Array of amplitude values for waveform visualization
+      type: [Number],
       default: [],
     },
-    // Add the reactions array to the message schema
+
     reactions: {
       type: [reactionSchema],
       default: [],
     },
+
     // Delivery/read receipts
     delivered: {
       type: Boolean,

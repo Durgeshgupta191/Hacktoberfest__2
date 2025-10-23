@@ -16,7 +16,7 @@ Fixes # (issue number if applicable)
 - [ ] 🚀 New feature
 - [ ] 🧹 Code refactor
 - [ ] 📝 Documentation update
-- [ ] ✅ Test addition or update
+- [ ]  Test addition or update
 - [ ] ⚙️ Other (please describe):
 
 ---

@@ -70,19 +70,19 @@ export function decryptMessage(encryptedData, keyBase64) {
  * Generate RSA key pair for key exchange
  * @returns {object} Public and private key pair
  */
-export function generateKeyPair() {
-  return crypto.generateKeyPairSync('rsa', {
-    modulusLength: 2048,
-    publicKeyEncoding: {
-      type: 'spki',
-      format: 'pem',
-    },
-    privateKeyEncoding: {
-      type: 'pkcs8',
-      format: 'pem',
-    },
-  });
-}
+// export function generateKeyPair() {
+//   return crypto.generateKeyPairSync('rsa', {
+//     modulusLength: 2048,
+//     publicKeyEncoding: {
+//       type: 'spki',
+//       format: 'pem',
+//     },
+//     privateKeyEncoding: {
+//       type: 'pkcs8',
+//       format: 'pem',
+//     },
+//   });
+// }
 
 /**
  * Encrypt data using RSA public key

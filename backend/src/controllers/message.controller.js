@@ -52,47 +52,31 @@ export const sendMessage = async (req, res) => {
     const { text, image, encryptedText, isEncrypted } = req.body;
     const { id: receiverId } = req.params;
     const senderId = req.user._id;
+
+    // Validation
+    if (!text && !image) {
+      return res.status(400).json({ error: 'Message must have text or image' });
+    }
+
     let imageUrl;
-
     if (image) {
-      // ===== GIF HANDLING START =====
-      // Check if image is a GIF URL (from Giphy) or base64 image data
-      if (image.startsWith('http://') || image.startsWith('https://')) {
-        // It's a GIF URL from Giphy, use it directly
-        imageUrl = image;
-      } else {
-        // It's a base64 image, upload to Cloudinary
-        const uploadResponse = await cloudinary.uploader.upload(image);
-        imageUrl = uploadResponse.secure_url;
-      }
-      // ===== GIF HANDLING END =====
+      const uploadResponse = await cloudinary.uploader.upload(image);
+      imageUrl = uploadResponse.secure_url;
     }
 
-    // Check blocking: if receiver has blocked sender or sender has blocked receiver, reject
-    const receiver = await User.findById(receiverId).select('blockedUsers');
-    const sender = await User.findById(senderId).select('blockedUsers');
-    if (!receiver || !sender) return res.status(404).json({ error: 'User not found' });
-
-    // If receiver blocked sender, sender cannot send messages to receiver
-    if (receiver.blockedUsers && receiver.blockedUsers.map(String).includes(senderId.toString())) {
-      return res.status(403).json({ error: 'You are blocked by this user' });
-    }
-
-    // If sender has blocked receiver, prevent sending (optional UX: disallow)
-    if (sender.blockedUsers && sender.blockedUsers.map(String).includes(receiverId.toString())) {
-      return res.status(400).json({ error: 'You have blocked this user' });
-    }
-
+    // Create message with BOTH plaintext (for sender) and encrypted (for receiver)
     const newMessage = new Message({
       senderId,
       receiverId,
-      text: isEncrypted ? null : text, // Store plain text only if not encrypted
-      encryptedText: isEncrypted ? encryptedText : null,
-      isEncrypted: isEncrypted || false,
+      text, 
+      encryptedText, 
       image: imageUrl,
+      isEncrypted: isEncrypted || false,
     });
 
     await newMessage.save();
+
+    // Send via socket to receiver
     const receiverSocketId = getReceiverSocketId(receiverId);
     if (receiverSocketId) {
       io.to(receiverSocketId).emit('newMessage', newMessage);
@@ -100,10 +84,11 @@ export const sendMessage = async (req, res) => {
 
     res.status(201).json(newMessage);
   } catch (error) {
-    console.log('Error in sendMessage controller: ', error.message);
+    console.log('Error in sendMessage controller', error.message);
     res.status(500).json({ error: 'Internal server error' });
   }
 };
+
 
 export const getUserPublicKey = async (req, res) => {
   try {
@@ -115,20 +100,6 @@ export const getUserPublicKey = async (req, res) => {
     res.status(200).json({ publicKey: user.publicKey });
   } catch (error) {
     console.log('Error in getUserPublicKey: ', error.message);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-};
-
-export const getMyPrivateKey = async (req, res) => {
-  try {
-    const userId = req.user._id;
-    const user = await User.findById(userId).select('privateKey');
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-    res.status(200).json({ privateKey: user.privateKey });
-  } catch (error) {
-    console.log('Error in getMyPrivateKey: ', error.message);
     res.status(500).json({ error: 'Internal server error' });
   }
 };
