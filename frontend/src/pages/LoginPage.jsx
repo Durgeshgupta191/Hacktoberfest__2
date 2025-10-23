@@ -88,25 +88,30 @@ const LoginPage = () => {
                     <p className="text-gray-400 text-base">Sign in to your account</p>
                   </div>
                 </div>
-
                 {/* Google Sign-In */}
-                <div className="space-y-4 mb-5">
-                  <GoogleLogin
-                    onSuccess={handleGoogleSuccess}
-                    onError={handleGoogleError}
-                    theme="filled_black"
-                    size="large"
-                    width="100%"
-                  />
-                  <div className="relative">
-                    <div className="absolute inset-0 flex items-center">
-                      <div className="w-full border-t border-gray-700"></div>
-                    </div>
-                    <div className="relative flex justify-center text-sm">
-                      <span className="px-2 bg-[#0f1419] text-gray-400">or</span>
-                    </div>
-                  </div>
-                </div>
+<div className="space-y-4 mb-5">
+  <div className="flex justify-center">
+    <div className="w-full max-w-xs flex justify-center">
+      <GoogleLogin
+        onSuccess={handleGoogleSuccess}
+        onError={handleGoogleError}
+        theme="filled_black"
+        size="large"
+        width="100%"
+      />
+    </div>
+  </div>
+
+  <div className="relative">
+    <div className="absolute inset-0 flex items-center">
+      <div className="w-full border-t border-gray-700"></div>
+    </div>
+    <div className="relative flex justify-center text-sm">
+      <span className="px-2 bg-[#0f1419] text-gray-400">or</span>
+    </div>
+  </div>
+</div>
+
 
                 <form onSubmit={handleSubmit} className="space-y-5">
                   {/* Email */}
