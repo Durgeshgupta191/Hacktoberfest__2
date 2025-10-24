@@ -378,7 +378,7 @@ const Sidebar = ({ setShowSidebar }) => {
             {/* RESPONSIVE: Groups display */}
             {groups.length > 0 &&
               groups.map((group) => {
-                const isActive = group?._id == selectedGroup?._id ?? false;
+                const isActive = group?._id == selectedGroup?._id;
                 return (
                   <GroupSidebarIcon
                     key={group._id}

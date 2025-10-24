@@ -337,13 +337,92 @@ export const useAuthStore = create((set, get) => ({
   googleLogin: async (googleToken) => {
     set({ isLoggingIn: true });
     try {
-      const res = await axiosInstance.post('/auth/google-login', {
-        token: googleToken,
-      });
-      set({ authUser: res.data });
-      toast.success('Logged in successfully!');
+      const res = await axiosInstance.post('/auth/google-check',{token: googleToken});
+      let found = res.data.found;
+
+      if(found){
+        console.log('Logging in...');
+      
+        const res = await axiosInstance.post('/auth/google-login', {
+          token: googleToken,
+        });
+        set({ authUser: res.data });
+        // toast.success('Logged in successfully!');
+        // get().connectSocket();
+      }
+      else{
+        console.log('Generating encryption keys on client...');
+      
+        const { publicKeyPem, privateKeyArrayBuffer } = await generateRSAKeyPair();
+        
+        console.log('Encrypting private key with password...');
+        
+        const encryptedPrivateKeyData = await encryptPrivateKey(
+          privateKeyArrayBuffer,
+          data.password
+        );
+        
+        console.log('Storing encrypted private key in IndexedDB...');
+        
+        await saveEncryptedPrivateKey(data.email, encryptedPrivateKeyData);
+
+        console.log('Logging in...');
+        
+        const res = await axiosInstance.post('/auth/google-login', {
+          publicKey: publicKeyPem,
+          token: googleToken,
+        });
+        set({ authUser: res.data });
+
+        // toast.success('Logged in successfully!');
+        // get().connectSocket();
+      }
+      
+      console.log('Looking for encrypted private key in IndexedDB...');
+      
+      const encryptedKeyData = await getEncryptedPrivateKey(user._id);
+      
+      if (!encryptedKeyData) {
+        console.warn('No encryption keys found in IndexedDB for user:', user._id);
+        
+        const fallbackKeyData = await getEncryptedPrivateKey(user.email);
+        if (fallbackKeyData) {
+          console.log(' Found keys with email, updating to use userId...');
+          await saveEncryptedPrivateKey(user._id, {
+            encryptedPrivateKey: fallbackKeyData.encryptedPrivateKey,
+            salt: fallbackKeyData.salt,
+            iv: fallbackKeyData.iv,
+          });
+        } else {
+          toast.error('Encryption keys not found. Please sign up again.');
+          get().connectSocket();
+          return;
+        }
+      }
+      
+      console.log('Decrypting private key with password...');
+      
+      try {
+        const finalKeyData = encryptedKeyData || await getEncryptedPrivateKey(user._id);
+        const privateKey = await decryptPrivateKey(finalKeyData, data.password);
+        
+        console.log('Loading private key into memory...');
+        
+        const encStore = useEncryptionStore.getState();
+        encStore.setMyPrivateKey(privateKey);
+        
+        set({ needsPasswordUnlock: false }); //  Keys unlocked, no prompt needed
+        
+        console.log(' E2EE login complete - private key loaded in memory');
+        toast.success('Logged in successfully');
+
+      } catch (decryptError) {
+        console.error('Failed to decrypt private key:', decryptError);
+        toast.error('Failed to decrypt encryption keys. Wrong password?');
+      }
       get().connectSocket();
-    } catch (error) {
+
+    }catch (error) {
       const msg = get()._getErrorMessage(error, 'Google login failed');
       toast.error(msg);
     } finally {

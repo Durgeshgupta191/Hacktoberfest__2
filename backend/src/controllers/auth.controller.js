@@ -122,6 +122,21 @@ export const resendOTP = async (req, res) => {
   }
 };
 
+export const googleCheck = async (req,res) => {
+  const { token } = req.body;
+  try {
+    const payload = await verifyGoogleToken(token);
+    const { email } = payload;
+
+    let user = await User.findOne({ email });
+    if(!user) res.status(200).json({found: false});
+    else res.status(200).json({found: true});
+  }
+  catch(err){
+   res.status(500).json({ message: 'Internal Server Error' }); 
+  }
+}
+
 // GOOGLE LOGIN
 export const googleLogin = async (req, res) => {
   const { token } = req.body;
@@ -131,9 +146,8 @@ export const googleLogin = async (req, res) => {
     const { email, name, picture } = payload;
 
     let user = await User.findOne({ email });
-
     if (!user) {
-      
+      const {publicKey} = req.body;
       user = await User.create({
         fullName: name,
         email,
@@ -141,7 +155,7 @@ export const googleLogin = async (req, res) => {
         googleId: payload.sub,
         isVerified: true,
         provider: 'google',
-        publicKey: null, 
+        publicKey, 
       });
     } else {
       user = await User.findByIdAndUpdate(
@@ -174,7 +188,7 @@ export const googleLogin = async (req, res) => {
 
 // LOGIN - Check if user is verified
 export const login = async (req, res) => {
-  const { email, password } = req.body;
+  const { email, password} = req.body;
 
   try {
     const user = await User.findOne({ email });
