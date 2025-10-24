@@ -62,7 +62,7 @@ const LoginPage = () => {
 
             {/* Google Sign-In */}
             <div className="space-y-5 mb-6">
-              <div className="flex justify-center">
+              {/* <div className="flex justify-center">
                 <div className="w-full sm:w-[90%] md:w-[80%] flex justify-center">
                   <GoogleLogin
                     onSuccess={handleGoogleSuccess}
@@ -73,7 +73,7 @@ const LoginPage = () => {
                     text="continue_with"
                   />
                 </div>
-              </div>
+              </div> */}
 
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">

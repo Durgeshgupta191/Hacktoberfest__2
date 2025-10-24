@@ -108,13 +108,13 @@ const SignupPage = () => {
 
                 {/* Google Sign-In */}
                 <div className="space-y-4 mb-5">
-                  <GoogleLogin
+                  {/* <GoogleLogin
                     onSuccess={handleGoogleSuccess}
                     onError={handleGoogleError}
                     theme="filled_black"
                     size="large"
                     width="100%"
-                  />
+                  /> */}
                   <div className="relative">
                     <div className="absolute inset-0 flex items-center">
                       <div className="w-full border-t border-gray-700"></div>

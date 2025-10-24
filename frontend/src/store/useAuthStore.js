@@ -339,13 +339,15 @@ export const useAuthStore = create((set, get) => ({
     try {
       const res = await axiosInstance.post('/auth/google-check',{token: googleToken});
       let found = res.data.found;
-
+      console.log(found);
+      let user;
       if(found){
         console.log('Logging in...');
       
         const res = await axiosInstance.post('/auth/google-login', {
           token: googleToken,
         });
+        user = res.data;
         set({ authUser: res.data });
         // toast.success('Logged in successfully!');
         // get().connectSocket();
@@ -356,28 +358,32 @@ export const useAuthStore = create((set, get) => ({
         const { publicKeyPem, privateKeyArrayBuffer } = await generateRSAKeyPair();
         
         console.log('Encrypting private key with password...');
-        
-        const encryptedPrivateKeyData = await encryptPrivateKey(
-          privateKeyArrayBuffer,
-          data.password
-        );
-        
-        console.log('Storing encrypted private key in IndexedDB...');
-        
-        await saveEncryptedPrivateKey(data.email, encryptedPrivateKeyData);
 
-        console.log('Logging in...');
-        
         const res = await axiosInstance.post('/auth/google-login', {
           publicKey: publicKeyPem,
           token: googleToken,
         });
+
+        // password is required but google oAuth does not store any passowrd
+        // so we can explicitly demand a password a user freshly registers.. and then use that password to encrpyt the
+        // private key
+        
+        const encryptedPrivateKeyData = await encryptPrivateKey(
+          privateKeyArrayBuffer,
+          res.data.password
+        );
+        
+        console.log('Storing encrypted private key in IndexedDB...');
+        
+        await saveEncryptedPrivateKey(res.data.email, encryptedPrivateKeyData);
+
+        console.log('Logging in...');
+        user = res.data;
         set({ authUser: res.data });
 
         // toast.success('Logged in successfully!');
         // get().connectSocket();
       }
-      
       console.log('Looking for encrypted private key in IndexedDB...');
       
       const encryptedKeyData = await getEncryptedPrivateKey(user._id);
