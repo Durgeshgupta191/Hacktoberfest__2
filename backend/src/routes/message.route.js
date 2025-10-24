@@ -5,7 +5,6 @@ import {
   getMessages,
   sendMessage,
   getUserPublicKey,
-  getMyPrivateKey,
   pinChat,
   unpinChat,
   getPinnedChats,
@@ -22,7 +21,6 @@ const router = express.Router();
 router.get('/users', protectRoute, getUsersForSidebar);
 router.get('/:id', protectRoute, getMessages);
 router.get('/publickey/:id', protectRoute, getUserPublicKey);
-router.get('/privatekey/me', protectRoute, getMyPrivateKey);
 router.get('/pinned/chats', protectRoute, getPinnedChats);
 
 router.post('/send/:id', protectRoute, sendMessage);

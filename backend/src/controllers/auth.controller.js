@@ -6,11 +6,10 @@ import { sendOTPEmail } from '../lib/emailService.js';
 import { verifyGoogleToken } from '../lib/google.js';
 import bcryptjs from 'bcryptjs';
 import cloudinary from '../lib/cloudinary.js';
-import { generateKeyPair } from '../lib/encryption.js';
 
 // SIGNUP - Send OTP
 export const signup = async (req, res) => {
-  const { fullName, email, password } = req.body;
+  const { fullName, email, password, publicKey } = req.body; 
 
   try {
     if (!fullName || !email || !password) {
@@ -39,14 +38,11 @@ export const signup = async (req, res) => {
     const salt = await bcryptjs.genSalt(10);
     const hashedPassword = await bcryptjs.hash(password, salt);
 
-    const { publicKey, privateKey } = generateKeyPair();
-
     const newUser = new User({
       fullName,
       email,
       password: hashedPassword,
-      publicKey,
-      privateKey,
+      publicKey: publicKey || null, 
       isVerified: false,
       provider: 'email',
     });
@@ -137,7 +133,7 @@ export const googleLogin = async (req, res) => {
     let user = await User.findOne({ email });
 
     if (!user) {
-      const { publicKey, privateKey } = generateKeyPair();
+      
       user = await User.create({
         fullName: name,
         email,
@@ -145,8 +141,7 @@ export const googleLogin = async (req, res) => {
         googleId: payload.sub,
         isVerified: true,
         provider: 'google',
-        publicKey,
-        privateKey,
+        publicKey: null, 
       });
     } else {
       user = await User.findByIdAndUpdate(
@@ -302,7 +297,7 @@ export const getBlockedUsers = async (req, res) => {
     const userId = req.user._id;
     const user = await User.findById(userId).populate(
       'blockedUsers',
-      '-password -privateKey -lastSeen'
+      '-password -lastSeen' 
     );
     res.status(200).json(user.blockedUsers || []);
   } catch (error) {

@@ -6,6 +6,7 @@ import LoginPage from './pages/LoginPage';
 import SettingsPage from './pages/SettingsPage';
 import ProfilePage from './pages/ProfilePage';
 import OTPVerificationPage from './pages/OTPVerificationPage';
+import PasswordUnlockModal from './components/PasswordUnlockModal'
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from './store/useAuthStore.js';
 import { useThemeStore } from './store/useThemeStore.js';
@@ -38,6 +39,8 @@ const App = () => {
 
   return (
     <div data-theme={theme} className="min-h-screen">
+      
+      <PasswordUnlockModal />
       <Navbar />
       <AnimatePresence mode="wait">
         <Routes location={location} key={location.pathname}>

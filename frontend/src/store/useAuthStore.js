@@ -2,6 +2,9 @@ import { create } from 'zustand';
 import { axiosInstance } from '../lib/axios';
 import toast from 'react-hot-toast';
 import { io } from 'socket.io-client';
+import { generateRSAKeyPair, encryptPrivateKey, decryptPrivateKey } from '../lib/keyGeneration';
+import { saveEncryptedPrivateKey, getEncryptedPrivateKey, clearAllKeys } from '../lib/keyStorage';
+import { useEncryptionStore } from './useEncryptionStore';
 
 const BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5001';
 
@@ -22,6 +25,10 @@ export const useAuthStore = create((set, get) => ({
   otpSent: false,
   otpResendTimer: 0,
 
+  // E2EE related state
+  tempPassword: null,
+  needsPasswordUnlock: false, 
+
   // Helper to extract error message safely
   _getErrorMessage: (error, fallback = 'An error occurred') => {
     if (!error) return fallback;
@@ -37,12 +44,32 @@ export const useAuthStore = create((set, get) => ({
     return String(error);
   },
 
+  // checkAuth with password unlock detection
   checkAuth: async () => {
     try {
       const res = await axiosInstance.get('/auth/check');
-      set({ authUser: res.data });
+      const user = res.data;
+      set({ authUser: user });
+      
+      console.log('Checking for encryption keys...');
+      
+      try {
+        const encryptedKeyData = await getEncryptedPrivateKey(user._id) || 
+                                 await getEncryptedPrivateKey(user.email);
+        
+        if (encryptedKeyData) {
+          console.log('Encryption keys found - need password to unlock');
+          set({ needsPasswordUnlock: true });
+        } else {
+          console.log('ℹ️ No encryption keys found');
+          set({ needsPasswordUnlock: false });
+        }
+      } catch (keyError) {
+        console.error('Error checking encryption keys:', keyError);
+      }
+      
       get().connectSocket();
-      // fetch blocked users after auth
+      
       try {
         const blockedRes = await axiosInstance.get('/auth/blocked');
         set({ blockedUsers: blockedRes.data });
@@ -51,9 +78,49 @@ export const useAuthStore = create((set, get) => ({
       }
     } catch (error) {
       set({ authUser: null });
-      console.log('Error in checkAuth: ', error);
+      if (error.response?.status !== 404 && error.response?.status !== 401) {
+        console.log('Error in checkAuth: ', error);
+      }
     } finally {
       set({ isCheckingAuth: false });
+    }
+  },
+
+  // Unlock encryption keys with password
+  unlockEncryptionKeys: async (password) => {
+    const user = get().authUser;
+    if (!user) {
+      toast.error('Please log in first');
+      return false;
+    }
+
+    try {
+      console.log('Unlocking encryption keys with password...');
+      
+      const encryptedKeyData = await getEncryptedPrivateKey(user._id) || 
+                               await getEncryptedPrivateKey(user.email);
+      
+      if (!encryptedKeyData) {
+        toast.error('Encryption keys not found');
+        return false;
+      }
+      
+      // Decrypt private key with password
+      const privateKey = await decryptPrivateKey(encryptedKeyData, password);
+      
+      // Load into memory
+      const encStore = useEncryptionStore.getState();
+      encStore.setMyPrivateKey(privateKey);
+      
+      set({ needsPasswordUnlock: false });
+      
+      console.log(' Encryption keys unlocked');
+      toast.success('Encryption unlocked! You can now read encrypted messages.');
+      return true;
+    } catch (error) {
+      console.error('Failed to unlock encryption keys:', error);
+      toast.error('Wrong password or corrupted keys');
+      return false;
     }
   },
 
@@ -61,13 +128,13 @@ export const useAuthStore = create((set, get) => ({
   blockUser: async (userId) => {
     try {
       await axiosInstance.post(`/auth/block/${userId}`);
-      // refresh blocked list
       const res = await axiosInstance.get('/auth/blocked');
       set({ blockedUsers: res.data });
     } catch (err) {
       console.warn('Failed to block user', err);
     }
   },
+
   unblockUser: async (userId) => {
     try {
       await axiosInstance.post(`/auth/unblock/${userId}`);
@@ -81,14 +148,43 @@ export const useAuthStore = create((set, get) => ({
   signup: async (data) => {
     set({ isSigningUp: true });
     try {
-      const res = await axiosInstance.post('/auth/signup', data);
-      // Backend should return the email and indicate OTP was sent
-      set({ pendingEmail: res.data.email, otpSent: true });
+      console.log('Generating encryption keys on client...');
+      
+      const { publicKeyPem, privateKeyArrayBuffer } = await generateRSAKeyPair();
+      
+      console.log('Encrypting private key with password...');
+      
+      const encryptedPrivateKeyData = await encryptPrivateKey(
+        privateKeyArrayBuffer,
+        data.password
+      );
+      
+      console.log('Storing encrypted private key in IndexedDB...');
+      
+      await saveEncryptedPrivateKey(data.email, encryptedPrivateKeyData);
+      
+      console.log('Sending public key to server...');
+      
+      const res = await axiosInstance.post('/auth/signup', {
+        fullName: data.fullName,
+        email: data.email,
+        password: data.password,
+        publicKey: publicKeyPem,
+      });
+  
+      set({ 
+        pendingEmail: res.data.email, 
+        otpSent: true,
+        tempPassword: data.password
+      });
+      
       toast.success('OTP sent to your email!');
+      
+      console.log(' E2EE signup complete - private key never left your device');
     } catch (error) {
       const msg = get()._getErrorMessage(error, 'Signup failed');
       toast.error(msg);
-      console.log('Error in signup: ', error);
+      console.error('Signup error:', error);
     } finally {
       set({ isSigningUp: false });
     }
@@ -101,9 +197,51 @@ export const useAuthStore = create((set, get) => ({
         email: get().pendingEmail,
         otp,
       });
-      set({ authUser: res.data, pendingEmail: null, otpSent: false });
-      toast.success('Email verified! Logged in successfully');
+      
+      const user = res.data;
+      const tempPassword = get().tempPassword;
+      
+      set({ authUser: user, pendingEmail: null, otpSent: false });
+      
+      if (tempPassword) {
+        try {
+          console.log('Loading encryption keys...');
+          
+          let encryptedKeyData = await getEncryptedPrivateKey(user.email);
+          
+          if (encryptedKeyData) {
+            await saveEncryptedPrivateKey(user._id, {
+              encryptedPrivateKey: encryptedKeyData.encryptedPrivateKey,
+              salt: encryptedKeyData.salt,
+              iv: encryptedKeyData.iv,
+            });
+            
+            console.log('Decrypting private key...');
+            
+            const privateKey = await decryptPrivateKey(encryptedKeyData, tempPassword);
+            const encStore = useEncryptionStore.getState();
+            encStore.setMyPrivateKey(privateKey);
+            
+            set({ needsPasswordUnlock: false }); //  Keys unlocked, no prompt needed
+            
+            console.log(' E2EE enabled automatically');
+            toast.success('Email verified! Encrypted messaging enabled.');
+          } else {
+            console.warn('Encryption keys not found in IndexedDB');
+            toast.warn('Encryption keys not found. Please sign up again.');
+          }
+        } catch (err) {
+          console.error('Failed to load encryption keys:', err);
+          toast.error('Failed to load encryption keys. Please log in again.');
+        }
+        
+        set({ tempPassword: null });
+      } else {
+        console.warn('No temporary password available');
+      }
+      
       get().connectSocket();
+      toast.success('Logged in successfully');
     } catch (error) {
       const msg = get()._getErrorMessage(error, 'OTP verification failed');
       toast.error(msg);
@@ -121,7 +259,6 @@ export const useAuthStore = create((set, get) => ({
       set({ otpResendTimer: 60 });
       toast.success('OTP resent to your email');
 
-      // Countdown timer
       const interval = setInterval(() => {
         set((state) => {
           const newTimer = state.otpResendTimer - 1;
@@ -138,13 +275,60 @@ export const useAuthStore = create((set, get) => ({
   login: async (data) => {
     set({ isLoggingIn: true });
     try {
+      console.log('Logging in...');
+      
       const res = await axiosInstance.post('/auth/login', data);
-      set({ authUser: res.data });
+      const user = res.data;
+      
+      set({ authUser: user });
+      
+      console.log('Looking for encrypted private key in IndexedDB...');
+      
+      const encryptedKeyData = await getEncryptedPrivateKey(user._id);
+      
+      if (!encryptedKeyData) {
+        console.warn('No encryption keys found in IndexedDB for user:', user._id);
+        
+        const fallbackKeyData = await getEncryptedPrivateKey(user.email);
+        if (fallbackKeyData) {
+          console.log(' Found keys with email, updating to use userId...');
+          await saveEncryptedPrivateKey(user._id, {
+            encryptedPrivateKey: fallbackKeyData.encryptedPrivateKey,
+            salt: fallbackKeyData.salt,
+            iv: fallbackKeyData.iv,
+          });
+        } else {
+          toast.error('Encryption keys not found. Please sign up again.');
+          get().connectSocket();
+          return;
+        }
+      }
+      
+      console.log('Decrypting private key with password...');
+      
+      try {
+        const finalKeyData = encryptedKeyData || await getEncryptedPrivateKey(user._id);
+        const privateKey = await decryptPrivateKey(finalKeyData, data.password);
+        
+        console.log('Loading private key into memory...');
+        
+        const encStore = useEncryptionStore.getState();
+        encStore.setMyPrivateKey(privateKey);
+        
+        set({ needsPasswordUnlock: false }); //  Keys unlocked, no prompt needed
+        
+        console.log(' E2EE login complete - private key loaded in memory');
+        toast.success('Logged in successfully');
+      } catch (decryptError) {
+        console.error('Failed to decrypt private key:', decryptError);
+        toast.error('Failed to decrypt encryption keys. Wrong password?');
+      }
+      
       get().connectSocket();
-      toast.success('Logged in successfully');
     } catch (error) {
       const msg = get()._getErrorMessage(error, 'Login failed');
       toast.error(msg);
+      console.error('Login error:', error);
     } finally {
       set({ isLoggingIn: false });
     }
@@ -170,23 +354,16 @@ export const useAuthStore = create((set, get) => ({
   logout: async () => {
     try {
       await axiosInstance.post('/auth/logout');
-      set({ authUser: null });
+      set({ authUser: null, needsPasswordUnlock: false }); //  Reset unlock flag
       set({ blockedUsers: [] });
       toast.success('Logged out successfully');
       get().disconnectSocket();
-
-      // Clear encryption data
+  
       try {
-        const mod = await import('./useEncryptionStore');
-        if (
-          mod &&
-          mod.useEncryptionStore &&
-          typeof mod.useEncryptionStore.getState === 'function'
-        ) {
-          const clearFn = mod.useEncryptionStore.getState().clearEncryptionData;
-          if (typeof clearFn === 'function') {
-            clearFn();
-          }
+        const encStore = useEncryptionStore.getState();
+        if (encStore && typeof encStore.clearEncryptionData === 'function') {
+          encStore.clearEncryptionData();
+          console.log('🧹 Cleared encryption keys from memory');
         }
       } catch (err) {
         console.warn('Unable to clear encryption data on logout:', err);
@@ -228,7 +405,6 @@ export const useAuthStore = create((set, get) => ({
     });
 
     socket.on('userTyping', ({ userId }) => {
-      // ignore typing from users who are blocked by me or who blocked me
       const blocked = get().blockedUsers.map((u) => (u._id ? u._id : u));
       const currentUser = get().authUser;
       if (blocked.includes(userId)) return;
@@ -247,19 +423,16 @@ export const useAuthStore = create((set, get) => ({
       });
     });
 
-    // Global handlers for incoming messages
     socket.on('newMessage', async (message) => {
       try {
-        // Delegate to useChatStore's subscribeToMessages logic for delivery/read receipts
         const mod = await import('./useChatStore');
         const chatStore = mod.useChatStore;
         if (chatStore && typeof chatStore.getState === 'function') {
-          // Use the same logic as subscribeToMessages
           const { selectedUser } = chatStore.getState();
           const currentUser = get().authUser;
           const blocked = get().blockedUsers.map((u) => (u._id ? u._id : u));
           if (blocked.includes(message.senderId)) return;
-          // Decrypt if needed
+          
           if (message.isEncrypted && message.encryptedText) {
             try {
               const modEnc = await import('./useEncryptionStore');
@@ -269,11 +442,10 @@ export const useAuthStore = create((set, get) => ({
               message.text = '[Encrypted message - unable to decrypt]';
             }
           }
-          // Use subscribeToMessages logic
+          
           const appendMessage = () => chatStore.setState((s) => ({ messages: [...s.messages, message] }));
           if (selectedUser && message.senderId === selectedUser._id) {
             appendMessage();
-            // Immediately emit read receipt for messages that become visible
             try {
               if (!message.groupId && currentUser && message.receiverId === currentUser._id) {
                 const s = get().socket;
@@ -287,7 +459,6 @@ export const useAuthStore = create((set, get) => ({
             if (currentUser && message.senderId !== currentUser._id) {
               chatStore.getState().notifyNewMessage(message, { isGroup: false });
             }
-            // Emit delivery acknowledgement back to server so sender receives single/double ticks
             try {
               if (!message.groupId && currentUser && message.receiverId === currentUser._id) {
                 const s = get().socket;

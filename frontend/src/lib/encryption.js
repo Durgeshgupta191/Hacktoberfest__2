@@ -1,218 +1,9 @@
-// Frontend encryption utilities using Web Crypto API
-
 /**
- * Generate AES-GCM key for message encryption
- * @returns {Promise<CryptoKey>} Generated AES key
+ * Client-side encryption for messages using Web Crypto API
+ * Hybrid encryption: RSA for key exchange, AES-GCM for message content
  */
-export async function generateAESKey() {
-  return await window.crypto.subtle.generateKey(
-    {
-      name: 'AES-GCM',
-      length: 256,
-    },
-    true, // extractable
-    ['encrypt', 'decrypt']
-  );
-}
 
-/**
- * Export AES key to raw format
- * @param {CryptoKey} key - AES key to export
- * @returns {Promise<ArrayBuffer>} Raw key data
- */
-export async function exportAESKey(key) {
-  return await window.crypto.subtle.exportKey('raw', key);
-}
-
-/**
- * Import AES key from raw format
- * @param {ArrayBuffer} keyData - Raw key data
- * @returns {Promise<CryptoKey>} Imported AES key
- */
-export async function importAESKey(keyData) {
-  return await window.crypto.subtle.importKey(
-    'raw',
-    keyData,
-    {
-      name: 'AES-GCM',
-      length: 256,
-    },
-    true,
-    ['encrypt', 'decrypt']
-  );
-}
-
-/**
- * Encrypt message using AES-GCM
- * @param {string} message - Message to encrypt
- * @param {CryptoKey} key - AES key for encryption
- * @returns {Promise<object>} Encrypted data with iv and encrypted content
- */
-export async function encryptMessage(message, key) {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(message);
-
-  const iv = window.crypto.getRandomValues(new Uint8Array(12)); // 96-bit IV for GCM
-
-  const encrypted = await window.crypto.subtle.encrypt(
-    {
-      name: 'AES-GCM',
-      iv: iv,
-    },
-    key,
-    data
-  );
-
-  return {
-    encrypted: arrayBufferToBase64(encrypted),
-    iv: arrayBufferToBase64(iv),
-  };
-}
-
-/**
- * Decrypt message using AES-GCM
- * @param {object} encryptedData - Object containing encrypted data and iv
- * @param {CryptoKey} key - AES key for decryption
- * @returns {Promise<string>} Decrypted message
- */
-export async function decryptMessage(encryptedData, key) {
-  const { encrypted, iv } = encryptedData;
-
-  const encryptedBuffer = base64ToArrayBuffer(encrypted);
-  const ivBuffer = base64ToArrayBuffer(iv);
-
-  const decrypted = await window.crypto.subtle.decrypt(
-    {
-      name: 'AES-GCM',
-      iv: ivBuffer,
-    },
-    key,
-    encryptedBuffer
-  );
-
-  const decoder = new TextDecoder();
-  return decoder.decode(decrypted);
-}
-
-/**
- * Import RSA public key from PEM format
- * @param {string} pemKey - PEM formatted public key
- * @returns {Promise<CryptoKey>} Imported public key
- */
-export async function importRSAPublicKey(pemKey) {
-  try {
-    // Process PEM format correctly
-    // Make sure the key has proper PEM format
-    let processedKey = pemKey.trim();
-    const pemHeader = '-----BEGIN PUBLIC KEY-----';
-    const pemFooter = '-----END PUBLIC KEY-----';
-
-    // Add headers if they don't exist
-    if (!processedKey.includes(pemHeader)) {
-      processedKey = `${pemHeader}\n${processedKey}\n${pemFooter}`;
-    }
-
-    // Extract the base64 part
-    const parts = processedKey.split(/\r?\n/);
-    const base64Content = parts
-      .filter((line) => !line.includes('-----BEGIN') && !line.includes('-----END'))
-      .join('');
-
-    const binaryDerString = window.atob(base64Content);
-    const binaryDer = str2ab(binaryDerString);
-
-    return await window.crypto.subtle.importKey(
-      'spki',
-      binaryDer,
-      {
-        name: 'RSA-OAEP',
-        hash: 'SHA-256',
-      },
-      true,
-      ['encrypt']
-    );
-  } catch (error) {
-    console.error('Error importing public key:', error);
-    throw new Error('Failed to import public key: ' + error.message);
-  }
-}
-
-/**
- * Import RSA private key from PEM format
- * @param {string} pemKey - PEM formatted private key
- * @returns {Promise<CryptoKey>} Imported private key
- */
-export async function importRSAPrivateKey(pemKey) {
-  try {
-    // Process PEM format correctly
-    // Make sure the key has proper PEM format
-    let processedKey = pemKey.trim();
-    const pemHeader = '-----BEGIN PRIVATE KEY-----';
-    const pemFooter = '-----END PRIVATE KEY-----';
-
-    // Add headers if they don't exist
-    if (!processedKey.includes(pemHeader)) {
-      processedKey = `${pemHeader}\n${processedKey}\n${pemFooter}`;
-    }
-
-    // Extract the base64 part
-    const parts = processedKey.split(/\r?\n/);
-    const base64Content = parts
-      .filter((line) => !line.includes('-----BEGIN') && !line.includes('-----END'))
-      .join('');
-
-    const binaryDerString = window.atob(base64Content);
-    const binaryDer = str2ab(binaryDerString);
-
-    return await window.crypto.subtle.importKey(
-      'pkcs8',
-      binaryDer,
-      {
-        name: 'RSA-OAEP',
-        hash: 'SHA-256',
-      },
-      true,
-      ['decrypt']
-    );
-  } catch (error) {
-    console.error('Error importing private key:', error);
-    throw new Error('Failed to import private key: ' + error.message);
-  }
-}
-
-/**
- * Encrypt data using RSA public key
- * @param {ArrayBuffer} data - Data to encrypt
- * @param {CryptoKey} publicKey - RSA public key
- * @returns {Promise<ArrayBuffer>} Encrypted data
- */
-export async function encryptWithRSA(data, publicKey) {
-  return await window.crypto.subtle.encrypt(
-    {
-      name: 'RSA-OAEP',
-    },
-    publicKey,
-    data
-  );
-}
-
-/**
- * Decrypt data using RSA private key
- * @param {ArrayBuffer} encryptedData - Encrypted data
- * @param {CryptoKey} privateKey - RSA private key
- * @returns {Promise<ArrayBuffer>} Decrypted data
- */
-export async function decryptWithRSA(encryptedData, privateKey) {
-  return await window.crypto.subtle.decrypt(
-    {
-      name: 'RSA-OAEP',
-    },
-    privateKey,
-    encryptedData
-  );
-}
-
-// Utility functions
+// Helper: Convert ArrayBuffer to Base64
 function arrayBufferToBase64(buffer) {
   const bytes = new Uint8Array(buffer);
   let binary = '';
@@ -222,6 +13,7 @@ function arrayBufferToBase64(buffer) {
   return window.btoa(binary);
 }
 
+// Helper: Convert Base64 to ArrayBuffer
 function base64ToArrayBuffer(base64) {
   const binaryString = window.atob(base64);
   const bytes = new Uint8Array(binaryString.length);
@@ -231,47 +23,208 @@ function base64ToArrayBuffer(base64) {
   return bytes.buffer;
 }
 
-function str2ab(str) {
-  const buf = new ArrayBuffer(str.length);
-  const bufView = new Uint8Array(buf);
-  for (let i = 0, strLen = str.length; i < strLen; i++) {
-    bufView[i] = str.charCodeAt(i);
-  }
-  return buf;
+// Helper: Convert PEM to CryptoKey
+async function importPublicKeyFromPem(pem) {
+  // Remove PEM header/footer and whitespace
+  const pemContents = pem
+    .replace('-----BEGIN PUBLIC KEY-----', '')
+    .replace('-----END PUBLIC KEY-----', '')
+    .replace(/\s/g, '');
+  
+  const binaryDer = base64ToArrayBuffer(pemContents);
+  
+  return await window.crypto.subtle.importKey(
+    'spki',
+    binaryDer,
+    {
+      name: 'RSA-OAEP',
+      hash: 'SHA-256',
+    },
+    true,
+    ['encrypt']
+  );
 }
 
 /**
- * Generate a session key for a conversation and encrypt it with recipient's public key
- * @param {string} recipientPublicKeyPem - Recipient's RSA public key in PEM format
- * @returns {Promise<object>} Session key and encrypted session key
+ * Generate a random AES session key and encrypt it with recipient's RSA public key
+ * @param {string} publicKeyPem - Recipient's RSA public key in PEM format
+ * @returns {Promise<Object>} Object containing sessionKey (CryptoKey) and encryptedSessionKey (base64)
  */
-export async function generateSessionKey(recipientPublicKeyPem) {
-  // Generate AES session key
-  const sessionKey = await generateAESKey();
-  const sessionKeyRaw = await exportAESKey(sessionKey);
+export async function generateSessionKey(publicKeyPem) {
+  try {
+    // Generate random AES-256 session key
+    const sessionKey = await window.crypto.subtle.generateKey(
+      {
+        name: 'AES-GCM',
+        length: 256,
+      },
+      true,
+      ['encrypt', 'decrypt']
+    );
 
-  // Import recipient's public key
-  const recipientPublicKey = await importRSAPublicKey(recipientPublicKeyPem);
+    // Export session key to raw format
+    const sessionKeyRaw = await window.crypto.subtle.exportKey('raw', sessionKey);
 
-  // Encrypt session key with recipient's public key
-  const encryptedSessionKey = await encryptWithRSA(sessionKeyRaw, recipientPublicKey);
+    // Import recipient's public key
+    const publicKey = await importPublicKeyFromPem(publicKeyPem);
 
-  return {
-    sessionKey,
-    encryptedSessionKey: arrayBufferToBase64(encryptedSessionKey),
-  };
+    // Encrypt session key with recipient's public key
+    const encryptedSessionKey = await window.crypto.subtle.encrypt(
+      {
+        name: 'RSA-OAEP',
+      },
+      publicKey,
+      sessionKeyRaw
+    );
+
+    return {
+      sessionKey,
+      encryptedSessionKey: arrayBufferToBase64(encryptedSessionKey),
+    };
+  } catch (error) {
+    console.error('Error generating session key:', error);
+    throw new Error('Failed to generate session key');
+  }
 }
 
 /**
  * Decrypt session key using private key
- * @param {string} encryptedSessionKeyBase64 - Base64 encoded encrypted session key
- * @param {string} privateKeyPem - RSA private key in PEM format
+ * @param {string} encryptedSessionKeyBase64 - Encrypted session key in base64
+ * @param {CryptoKey} privateKey - RSA private key (CryptoKey object)
  * @returns {Promise<CryptoKey>} Decrypted AES session key
  */
-export async function decryptSessionKey(encryptedSessionKeyBase64, privateKeyPem) {
-  const privateKey = await importRSAPrivateKey(privateKeyPem);
-  const encryptedSessionKey = base64ToArrayBuffer(encryptedSessionKeyBase64);
+export async function decryptSessionKey(encryptedSessionKeyBase64, privateKey) {
+  try {
+    const encryptedSessionKey = base64ToArrayBuffer(encryptedSessionKeyBase64);
 
-  const sessionKeyRaw = await decryptWithRSA(encryptedSessionKey, privateKey);
-  return await importAESKey(sessionKeyRaw);
+    // Decrypt session key with private key
+    const sessionKeyRaw = await window.crypto.subtle.decrypt(
+      {
+        name: 'RSA-OAEP',
+      },
+      privateKey,
+      encryptedSessionKey
+    );
+
+    // Import as AES key
+    const sessionKey = await window.crypto.subtle.importKey(
+      'raw',
+      sessionKeyRaw,
+      {
+        name: 'AES-GCM',
+        length: 256,
+      },
+      true,
+      ['encrypt', 'decrypt']
+    );
+
+    return sessionKey;
+  } catch (error) {
+    console.error('Error decrypting session key:', error);
+    throw new Error('Failed to decrypt session key');
+  }
+}
+
+/**
+ * Encrypt message with AES session key
+ * @param {string} message - Plain text message
+ * @param {CryptoKey} sessionKey - AES session key
+ * @returns {Promise<Object>} Object containing encrypted, iv, and tag
+ */
+export async function encryptMessage(message, sessionKey) {
+  try {
+    const encoder = new TextEncoder();
+    const messageBuffer = encoder.encode(message);
+
+    // Generate random IV (12 bytes for GCM)
+    const iv = window.crypto.getRandomValues(new Uint8Array(12));
+
+    // Encrypt message
+    const encryptedBuffer = await window.crypto.subtle.encrypt(
+      {
+        name: 'AES-GCM',
+        iv: iv,
+      },
+      sessionKey,
+      messageBuffer
+    );
+
+    return {
+      encrypted: arrayBufferToBase64(encryptedBuffer),
+      iv: arrayBufferToBase64(iv),
+    };
+  } catch (error) {
+    console.error('Error encrypting message:', error);
+    throw new Error('Failed to encrypt message');
+  }
+}
+
+/**
+ * Decrypt message with AES session key
+ * @param {Object} encryptedData - Object containing encrypted message and iv
+ * @param {CryptoKey} sessionKey - AES session key
+ * @returns {Promise<string>} Decrypted message
+ */
+export async function decryptMessage(encryptedData, sessionKey) {
+  try {
+    const { encrypted, iv } = encryptedData;
+
+    const encryptedBuffer = base64ToArrayBuffer(encrypted);
+    const ivBuffer = base64ToArrayBuffer(iv);
+
+    // Decrypt message
+    const decryptedBuffer = await window.crypto.subtle.decrypt(
+      {
+        name: 'AES-GCM',
+        iv: ivBuffer,
+      },
+      sessionKey,
+      encryptedBuffer
+    );
+
+    const decoder = new TextDecoder();
+    return decoder.decode(decryptedBuffer);
+  } catch (error) {
+    console.error('Error decrypting message:', error);
+    throw new Error('Failed to decrypt message');
+  }
+}
+
+/**
+ * Export AES key to base64 (for storage)
+ * @param {CryptoKey} key - AES session key
+ * @returns {Promise<string>} Base64 encoded key
+ */
+export async function exportAESKey(key) {
+  try {
+    const exported = await window.crypto.subtle.exportKey('raw', key);
+    return arrayBufferToBase64(exported);
+  } catch (error) {
+    console.error('Error exporting AES key:', error);
+    throw new Error('Failed to export key');
+  }
+}
+
+/**
+ * Import AES key from base64
+ * @param {string} keyBase64 - Base64 encoded key
+ * @returns {Promise<CryptoKey>} AES session key
+ */
+export async function importAESKey(keyBase64) {
+  try {
+    const keyBuffer = base64ToArrayBuffer(keyBase64);
+    return await window.crypto.subtle.importKey(
+      'raw',
+      keyBuffer,
+      {
+        name: 'AES-GCM',
+        length: 256,
+      },
+      true,
+      ['encrypt', 'decrypt']
+    );
+  } catch (error) {
+    console.error('Error importing AES key:', error);
+    throw new Error('Failed to import key');
+  }
 }

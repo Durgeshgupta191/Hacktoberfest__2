@@ -8,13 +8,13 @@ import {
   importAESKey,
   exportAESKey,
 } from '../lib/encryption';
-import toast from '../lib/toast';
+import toast from 'react-hot-toast';
 
 export const useEncryptionStore = create((set, get) => ({
   isEncryptionEnabled: true,
-  sessionKeys: {}, // userId -> CryptoKey
-  encryptedSessionKeys: {}, // userId -> base64 encrypted session key
-  userPublicKeys: {}, // userId -> PEM public key
+  sessionKeys: {}, 
+  encryptedSessionKeys: {}, 
+  userPublicKeys: {},
   myPrivateKey: null,
 
   setEncryptionEnabled: (enabled) => set({ isEncryptionEnabled: enabled }),
@@ -46,25 +46,23 @@ export const useEncryptionStore = create((set, get) => ({
     }
   },
 
-  // Get my private key
-  getMyPrivateKey: async () => {
-    const { myPrivateKey } = get();
-
-    if (myPrivateKey) {
-      return myPrivateKey;
+  // Set private key in memory (called during login)
+  setMyPrivateKey: (privateKey) => {
+    if (!privateKey) {
+      console.error('Attempting to set null private key');
+      return;
     }
+    console.log(' Private key loaded into memory');
+    set({ myPrivateKey: privateKey });
+  },
 
-    try {
-      const res = await axiosInstance.get('/messages/privatekey/me');
-      const privateKey = res.data.privateKey;
-
-      set({ myPrivateKey: privateKey });
-      return privateKey;
-    } catch (error) {
-      console.error('Failed to get private key:', error);
-      toast.error('Failed to get decryption key');
+  getMyPrivateKey: () => {
+    const myPrivateKey = get().myPrivateKey;
+    if (!myPrivateKey) {
+      toast.error('Encryption key not available. Please unlock with your password.');
       return null;
     }
+    return myPrivateKey;
   },
 
   // Initialize session key for a user
@@ -102,20 +100,17 @@ export const useEncryptionStore = create((set, get) => ({
     }
   },
 
-  // Decrypt session key from incoming message
   decryptIncomingSessionKey: async (encryptedSessionKeyBase64) => {
     try {
-      const privateKey = await get().getMyPrivateKey();
-      if (!privateKey) {
-        throw new Error('Could not get private key');
-      }
-
+      const privateKey = get().getMyPrivateKey(); // NOT async!
+      if (!privateKey) throw new Error('Could not get private key from memory');
       return await decryptSessionKey(encryptedSessionKeyBase64, privateKey);
     } catch (error) {
       console.error('Failed to decrypt session key:', error);
       return null;
     }
   },
+  
 
   // Encrypt message for sending
   encryptMessageForSending: async (message, userId) => {
@@ -148,42 +143,31 @@ export const useEncryptionStore = create((set, get) => ({
     }
   },
 
-  // Decrypt received message
   decryptReceivedMessage: async (encryptedData, senderId) => {
     try {
-      const { sessionKeys } = get();
-      let sessionKey = sessionKeys[senderId];
-
-      // If we don't have the session key, try to decrypt it
-      if (!sessionKey && encryptedData.encryptedSessionKey) {
-        sessionKey = await get().decryptIncomingSessionKey(encryptedData.encryptedSessionKey);
-        if (sessionKey) {
-          set({
-            sessionKeys: {
-              ...sessionKeys,
-              [senderId]: sessionKey,
-            },
-          });
-        }
+      if (!encryptedData.encryptedSessionKey) {
+        // Only for plain/legacy messages
+        return '[Not encrypted, or sent before E2EE was enabled]';
       }
-
-      if (!sessionKey) {
-        throw new Error('No session key available');
-      }
-
+      const privateKey = get().myPrivateKey;
+      if (!privateKey) throw new Error("Private key is not loaded in memory");
+      let sessionKey = await get().decryptIncomingSessionKey(encryptedData.encryptedSessionKey);
+      if (!sessionKey) throw new Error("Failed to decrypt session key");
       return await decryptMessage(encryptedData, sessionKey);
-    } catch (error) {
-      console.error('Failed to decrypt message:', error);
-      return '[Encrypted message - unable to decrypt]';
+    } catch (e) {
+      console.error("Failed to decrypt message:", e);
+      return '[Unable to decrypt - encryption error]';
     }
-  },
+  },  
 
-  // Clear encryption data (for logout)
-  clearEncryptionData: () =>
+  // Clear encryption data on logout
+  clearEncryptionData: () => {
+    console.log('🧹 Clearing all encryption data from memory');
     set({
       sessionKeys: {},
       encryptedSessionKeys: {},
       userPublicKeys: {},
       myPrivateKey: null,
-    }),
+    });
+  },
 }));
