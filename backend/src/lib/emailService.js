@@ -30,8 +30,7 @@
 
 
 // Import the Brevo library at the top of your file
-const Brevo = require('@getbrevo/brevo');
-
+import Brevo from '@getbrevo/brevo'
 // This function now uses the Brevo API
 export const sendOTPEmail = async (email, otp) => {
   // Configure the API client
