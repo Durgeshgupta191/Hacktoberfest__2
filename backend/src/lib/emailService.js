@@ -1,4 +1,6 @@
-import nodemailer from 'nodemailer';
+// import nodemailer from 'nodemailer';
+
+
 // import {Resend} from 'resend'
 
 // const resend = new Resend(process.env.RESEND_API_KEY)
@@ -22,44 +24,43 @@ import nodemailer from 'nodemailer';
   
 // }
 
-let transporter = null;
+// 
 
-const getTransporter = () => {
-  if (!transporter) {
-    transporter = nodemailer.createTransport({
-      host: 'smtp-relay.brevo.com',
-      port: 465,
-      secure: true, // `true` for port 465, `false` for other ports like 587
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS, 
-      },
-    });
-  }
-  return transporter;
-};
 
+
+
+// Import the Brevo library at the top of your file
+const Brevo = require('@getbrevo/brevo');
+
+// This function now uses the Brevo API
 export const sendOTPEmail = async (email, otp) => {
-  const mailOptions = {
-    from: process.env.SENDER_EMAIL,
-    to: email,
-    subject: 'Your Email Verification Code',
-    html: `
-      <h2>Verify Your Email</h2>
-      <p>Your OTP is: <strong>${otp}</strong></p>
-      <p>This code expires in 10 minutes.</p>
-    `,
+  // Configure the API client
+  const defaultClient = Brevo.ApiClient.instance;
+  const apiKey = defaultClient.authentications['api-key'];
+  apiKey.apiKey = process.env.BREVO_API_KEY;
+
+  const apiInstance = new Brevo.TransactionalEmailsApi();
+  const sendSmtpEmail = new Brevo.SendSmtpEmail();
+
+  // Construct the email
+  sendSmtpEmail.subject = "Your Email Verification Code";
+  sendSmtpEmail.htmlContent = `
+    <h2>Verify Your Email</h2>
+    <p>Your OTP is: <strong>${otp}</strong></p>
+    <p>This code expires in 10 minutes.</p>
+  `;
+  sendSmtpEmail.sender = { 
+    name: "Chatty", 
+    email: process.env.SENDER_EMAIL // This MUST be a verified sender in Brevo
   };
+  sendSmtpEmail.to = [{ email: email }];
 
   try {
-    const transporter = getTransporter();
-    await transporter.sendMail(mailOptions);
-    console.log("Email sent successfully!");
+    // Send the email
+    await apiInstance.sendTransacEmail(sendSmtpEmail);
+    console.log("Email sent successfully via Brevo API!");
   } catch (error) {
-    // This will log the REAL error to your Render logs!
-    console.error("Failed to send email:", error);
+    console.error("Failed to send email via Brevo API:", error.response ? error.response.body : error.message);
     throw new Error("Email could not be sent.");
   }
 };
-
-
