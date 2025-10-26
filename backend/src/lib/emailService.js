@@ -32,7 +32,8 @@
 // Import the Brevo library at the top of your file
 // import Brevo from '@getbrevo/brevo'
 // This function now uses the Brevo API
-import { ApiClient, TransactionalEmailsApi, SendSmtpEmail } from '@getbrevo/brevo';
+import pkg from '@getbrevo/brevo';
+const { ApiClient, TransactionalEmailsApi, SendSmtpEmail } = pkg;
 
 export const sendOTPEmail = async (email, otp) => {
   // Configure the API client
