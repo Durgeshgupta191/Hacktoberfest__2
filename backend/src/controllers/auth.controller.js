@@ -24,9 +24,12 @@ export const signup = async (req, res) => {
     if (existingUser) {
       return res.status(400).json({ message: 'Email already exists' });
     }
-
+    console.log("OTP bhej rahu hu")
     // Generate OTP
     const otp = generateOTP();
+
+    console.log("OTP bhej diya hu")
+
 
     // Save OTP to database
     await OTP.findOneAndUpdate({ email }, { email, otp }, { upsert: true });
