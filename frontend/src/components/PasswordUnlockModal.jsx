@@ -86,7 +86,7 @@ function PasswordUnlockModal() {
           </div>
         </form>
 
-        <p className="text-xs text-gray-500 mt-4">
+        <p className="text-xs text-gray-900 mt-4">
           💡 Your messages are encrypted. Enter your password to read them.
         </p>
       </div>
