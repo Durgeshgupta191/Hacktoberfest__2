@@ -30,16 +30,18 @@
 
 
 // Import the Brevo library at the top of your file
-import Brevo from '@getbrevo/brevo'
+// import Brevo from '@getbrevo/brevo'
 // This function now uses the Brevo API
+import { ApiClient, TransactionalEmailsApi, SendSmtpEmail } from '@getbrevo/brevo';
+
 export const sendOTPEmail = async (email, otp) => {
   // Configure the API client
-  const defaultClient = Brevo.ApiClient.instance;
+  const defaultClient = ApiClient.instance;
   const apiKey = defaultClient.authentications['api-key'];
   apiKey.apiKey = process.env.BREVO_API_KEY;
 
-  const apiInstance = new Brevo.TransactionalEmailsApi();
-  const sendSmtpEmail = new Brevo.SendSmtpEmail();
+  const apiInstance = new TransactionalEmailsApi();
+  const sendSmtpEmail = new SendSmtpEmail();
 
   // Construct the email
   sendSmtpEmail.subject = "Your Email Verification Code";
