@@ -27,13 +27,12 @@ let transporter = null;
 const getTransporter = () => {
   if (!transporter) {
     transporter = nodemailer.createTransport({
-      service: 'gmail',
-      host: 'smtp.gmail.com',
+      host: 'smtp-relay.brevo.com',
       port: 587,
       secure: false, // `true` for port 465, `false` for other ports like 587
       auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASSWORD, // This MUST be your Google App Password
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS, 
       },
     });
   }
@@ -42,7 +41,7 @@ const getTransporter = () => {
 
 export const sendOTPEmail = async (email, otp) => {
   const mailOptions = {
-    from: process.env.EMAIL_USER,
+    from: process.env.SENDER_EMAIL,
     to: email,
     subject: 'Your Email Verification Code',
     html: `
