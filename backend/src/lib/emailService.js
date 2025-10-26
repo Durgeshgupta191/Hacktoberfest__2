@@ -44,14 +44,22 @@ export const sendOTPEmail = async (email, otp) => {
     from: process.env.SENDER_EMAIL,
     to: email,
     subject: 'Your Email Verification Code',
-    text: `
-      Verify Your Email
-      Your OTP is: <>${otp}
-      This code expires in 10 minutes.
+    html: `
+      <h2>Verify Your Email</h2>
+      <p>Your OTP is: <strong>${otp}</strong></p>
+      <p>This code expires in 10 minutes.</p>
     `,
   };
 
-  return getTransporter().sendMail(mailOptions);
+  try {
+    const transporter = getTransporter();
+    await transporter.sendMail(mailOptions);
+    console.log("Email sent successfully!");
+  } catch (error) {
+    // This will log the REAL error to your Render logs!
+    console.error("Failed to send email:", error);
+    throw new Error("Email could not be sent.");
+  }
 };
 
 
