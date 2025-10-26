@@ -32,6 +32,7 @@
 // Import the Brevo library at the top of your file
 // import Brevo from '@getbrevo/brevo'
 // This function now uses the Brevo API
+console.log("<<<<< RUNNING LATEST EMAIL SERVICE CODE - V2 >>>>>");
 import pkg from '@getbrevo/brevo';
 const { ApiClient, TransactionalEmailsApi, SendSmtpEmail } = pkg;
 
