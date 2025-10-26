@@ -24,22 +24,25 @@ export const signup = async (req, res) => {
     if (existingUser) {
       return res.status(400).json({ message: 'Email already exists' });
     }
-    console.log("OTP bhej rahu hu")
     // Generate OTP
     const otp = generateOTP();
 
-    console.log("OTP bhej diya hu")
 
 
     // Save OTP to database
     await OTP.findOneAndUpdate({ email }, { email, otp }, { upsert: true });
 
     // Send OTP email
+    console.log("OTP bhej rahu hu")
     await sendOTPEmail(email, otp);
+    console.log("OTP bhej diya hu")
+
 
     // Create unverified user with hashed password
     const salt = await bcryptjs.genSalt(10);
     const hashedPassword = await bcryptjs.hash(password, salt);
+
+    console.log("new user")
 
     const newUser = new User({
       fullName,
@@ -51,6 +54,7 @@ export const signup = async (req, res) => {
     });
 
     await newUser.save();
+    console.log("ban gya new user")
 
     res.status(200).json({
       message: 'OTP sent to email',
