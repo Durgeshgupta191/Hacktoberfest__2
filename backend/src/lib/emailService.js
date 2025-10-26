@@ -44,10 +44,10 @@ export const sendOTPEmail = async (email, otp) => {
     from: process.env.SENDER_EMAIL,
     to: email,
     subject: 'Your Email Verification Code',
-    html: `
-      <h2>Verify Your Email</h2>
-      <p>Your OTP is: <strong>${otp}</strong></p>
-      <p>This code expires in 10 minutes.</p>
+    text: `
+      Verify Your Email
+      Your OTP is: <>${otp}
+      This code expires in 10 minutes.
     `,
   };
 
