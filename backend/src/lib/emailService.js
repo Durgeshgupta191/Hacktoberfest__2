@@ -30,7 +30,7 @@ const getTransporter = () => {
       service: 'gmail',
       host: 'smtp.gmail.com',
       port: 587,
-      secure: true, // `true` for port 465, `false` for other ports like 587
+      secure: false, // `true` for port 465, `false` for other ports like 587
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASSWORD, // This MUST be your Google App Password
